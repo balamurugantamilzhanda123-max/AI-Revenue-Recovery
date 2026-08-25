@@ -1,0 +1,28 @@
+# Secrets
+.env
+.env.local
+*.env
+!*.env.example
+!*.env.local.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+backend/.env
+backend/.venv/

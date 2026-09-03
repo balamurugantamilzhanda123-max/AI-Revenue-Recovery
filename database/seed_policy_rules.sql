@@ -1,11 +1,8 @@
--- Default deterministic policy rules (Section 11 of spec)
--- Run AFTER schema.sql
-
 insert into policy_rules (rule_name, rule_version, config, active) values
-  ('max_automatic_retries', 1, '{"limit": 1}'::jsonb, true),
-  ('max_recovery_messages', 1, '{"limit": 2}'::jsonb, true),
-  ('success_stop_rule', 1, '{"description": "SUCCESS transaction stops all further recovery"}'::jsonb, true),
-  ('opt_out_rule', 1, '{"description": "Customer opt-out stops communication and recovery"}'::jsonb, true),
-  ('low_confidence_threshold', 1, '{"threshold": 0.70}'::jsonb, true),
-  ('duplicate_request_rule', 1, '{"description": "Same idempotency key returns prior result"}'::jsonb, true)
+  ('max_automatic_retries', 1, '{"limit": 1}', true),
+  ('max_recovery_messages', 1, '{"limit": 2}', true),
+  ('payment_success_stop_rule', 1, '{"when": "payment_status=SUCCESS", "action": "STOP_ALL_RECOVERY"}', true),
+  ('customer_opt_out_rule', 1, '{"customer_response": "STOP", "action": "STOP_RECOVERY_COMMUNICATION"}', true),
+  ('idempotency_required', 1, '{"protected_endpoints": ["/api/recovery/start/{transaction_id}", "/api/payments/retry/{transaction_id}"]}', true),
+  ('human_escalation_rule', 1, '{"conditions": ["repeated_failure", "low_confidence", "unsupported_action"]}', true)
 on conflict (rule_name, rule_version) do nothing;

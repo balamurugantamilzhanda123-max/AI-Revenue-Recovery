@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: reviveai-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite:///./reviveai_demo.db
+      - AUTO_CREATE_TABLES=true
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://frontend:3000
+      - AI_MOCK_MODE=false
+      - AI_MODEL=gpt-4.1-mini
+      - PAYMENT_SANDBOX_MODE=true
+      - MAX_AUTOMATIC_RETRIES=1
+      - MAX_RECOVERY_MESSAGES=2
+      - LOW_CONFIDENCE_THRESHOLD=0.70
+    restart: unless-stopped
+    volumes:
+      - backend-data:/app/data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    container_name: reviveai-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:

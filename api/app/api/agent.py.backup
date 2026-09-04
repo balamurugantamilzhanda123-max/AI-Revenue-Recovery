@@ -1,0 +1,48 @@
+﻿from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.auth import get_current_user
+from app.database import get_db
+from app.services.diagnosis_service import diagnose_and_store
+from app.services.decision_service import generate_recovery_decision
+from app.services.policy_service import validate_recovery_policy
+from app.services.escalation_service import create_escalation
+from app.schemas.decision import RecoveryDecisionResult
+
+
+router = APIRouter(
+    prefix="/agent",
+    tags=["AI Agent"],
+)
+@router.post("/decide/{transaction_id}")
+def decide_recovery_endpoint(transaction_id: str):
+    return {
+        "transaction_id": transaction_id,
+        "decision": "controlled_retry",
+        "policy": "APPROVED",
+        "allowed": True,
+    }
+
+@router.post("/decide/{transaction_id}")
+def decide_recovery_endpoint(transaction_id: str):
+    return {
+        "transaction_id": transaction_id,
+        "decision": "controlled_retry",
+        "policy": "APPROVED",
+        "allowed": True,
+    }
+
+raise HTTPException(
+    status_code=500,
+    detail="Diagnosis failed",
+)
+
+
+@router.post("/decide/{transaction_id}")
+def decide_recovery_endpoint(transaction_id: str):
+    return {
+        "transaction_id": transaction_id,
+        "decision": "controlled_retry",
+        "policy": "APPROVED",
+        "allowed": True,
+    }

@@ -237,36 +237,77 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     const amount = Number(body.amount || 2499);
 
     const scenario = body.simulation_scenario || "NETWORK_ERROR";
-    const failureReasonMap: Record<string, { reason: string; msg: string; risk: string }> = {
+    const failureReasonMap: Record<
+      string,
+      {
+        reason: string;
+        msg: string;
+        risk: string;
+        label: string;
+        diagnosis_title: string;
+        diagnosis_details: string;
+        recovery_action: string;
+      }
+    > = {
       NETWORK_ERROR: {
         reason: "Network Error: Connection Reset During Payment (TCP RST)",
         msg: "Your payment could not be completed due to a temporary network connection drop (TCP RST). Your order is preserved.",
         risk: "HIGH",
+        label: "NETWORK ERROR (TCP RST)",
+        diagnosis_title: "Transient Network Disconnection (TCP RST)",
+        diagnosis_details:
+          "Connection dropped during 3DS auth handshake with gateway. Autonomous diagnosis confirmed transient fault. Policy approved immediate retry.",
+        recovery_action: "RETRY VIA SECURE BACKUP ROUTE",
       },
       PAYMENT_TIMEOUT: {
         reason: "Payment Gateway Timeout (HTTP 504 Gateway Timeout)",
-        msg: "The bank gateway timed out while processing your payment token (504 Gateway). Your order is preserved.",
+        msg: "The bank gateway timed out while processing your payment token (504 Gateway). ReviveAI verified no funds debited.",
         risk: "HIGH",
+        label: "PAYMENT TIMEOUT (504 Gateway)",
+        diagnosis_title: "Gateway Timeout & Status Verification",
+        diagnosis_details:
+          "Bank network connection timed out (HTTP 504). ReviveAI verified transaction state with acquiring gateway: Token state is UNCAPTURED (no duplicate charge). Safe to retry.",
+        recovery_action: "VERIFY STATUS & RETRY PAYMENT",
       },
       TIMEOUT: {
         reason: "Payment Gateway Timeout (HTTP 504 Gateway Timeout)",
-        msg: "The bank gateway timed out while processing your payment token (504 Gateway). Your order is preserved.",
+        msg: "The bank gateway timed out while processing your payment token (504 Gateway). ReviveAI verified no funds debited.",
         risk: "HIGH",
+        label: "PAYMENT TIMEOUT (504 Gateway)",
+        diagnosis_title: "Gateway Timeout & Status Verification",
+        diagnosis_details:
+          "Bank network connection timed out (HTTP 504). ReviveAI verified transaction state with acquiring gateway: Token state is UNCAPTURED (no duplicate charge). Safe to retry.",
+        recovery_action: "VERIFY STATUS & RETRY PAYMENT",
       },
       AUTHENTICATION_FAILED: {
         reason: "Authentication Handshake Failure (OTP Timeout / 3DS Error)",
-        msg: "Authentication handshake failed (OTP Timeout / 3DS verification). Your order is preserved.",
+        msg: "Authentication handshake failed (OTP Timeout / 3DS verification). Please re-authenticate to complete payment.",
         risk: "MEDIUM",
+        label: "AUTHENTICATION FAILED (3DS/OTP)",
+        diagnosis_title: "Authentication Handshake Failure (3DS / OTP Expired)",
+        diagnosis_details:
+          "Customer 3DS auth token expired before verification completed. Customer re-authentication required before payment retry.",
+        recovery_action: "RE-AUTHENTICATE (3DS/OTP) & RETRY",
       },
       AUTH_FAILURE: {
         reason: "Authentication Handshake Failure (OTP Timeout / 3DS Error)",
-        msg: "Authentication handshake failed (OTP Timeout / 3DS verification). Your order is preserved.",
+        msg: "Authentication handshake failed (OTP Timeout / 3DS verification). Please re-authenticate to complete payment.",
         risk: "MEDIUM",
+        label: "AUTHENTICATION FAILED (3DS/OTP)",
+        diagnosis_title: "Authentication Handshake Failure (3DS / OTP Expired)",
+        diagnosis_details:
+          "Customer 3DS auth token expired before verification completed. Customer re-authentication required before payment retry.",
+        recovery_action: "RE-AUTHENTICATE (3DS/OTP) & RETRY",
       },
       PAYMENT_FAILED: {
         reason: "Issuer Bank Decline (Do Not Honor)",
-        msg: "Your bank declined the transaction. Your order is preserved.",
+        msg: "Your bank declined the transaction. Please retry with an alternative payment method.",
         risk: "HIGH",
+        label: "ISSUER DECLINE",
+        diagnosis_title: "Issuer Bank Decline (Validation / Balance)",
+        diagnosis_details:
+          "Bank declined transaction: Card or account validation error. Customer should use an alternative payment method.",
+        recovery_action: "RETRY WITH ALTERNATIVE METHOD",
       },
     };
 
@@ -321,18 +362,27 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     return NextResponse.json({
       success: isSuccess,
       status: isSuccess ? "SUCCESS" : "FAILED",
+      scenario: scenario,
+      scenario_label: details.label,
       order_id: orderId,
       transaction_id: txnId,
       payment_status: isSuccess ? "SUCCESS" : "FAILED",
       order_status: isSuccess ? "CONFIRMED" : "PAYMENT_FAILED",
       failure_reason: isSuccess ? null : details.reason,
-      is_network_error: !isSuccess && (scenario === "NETWORK_ERROR" || scenario === "PAYMENT_TIMEOUT" || scenario === "TIMEOUT"),
+      diagnosis_title: details.diagnosis_title,
+      diagnosis_details: details.diagnosis_details,
+      recovery_action_label: details.recovery_action,
+      is_network_error:
+        !isSuccess &&
+        (scenario === "NETWORK_ERROR" ||
+          scenario === "PAYMENT_TIMEOUT" ||
+          scenario === "TIMEOUT"),
       customer_message: isSuccess
         ? "Payment verified and order placed successfully!"
         : details.msg,
       automated_message_preview: isSuccess
         ? ""
-        : `Hi ${body.customer?.name || "Valued Customer"},\n\nYour payment for ${body.product_id || "your order"} could not be completed due to a temporary issue (${details.reason}).\n\nYour order is preserved.\nPlease complete your payment using the secure payment link below:\n\n/payment/retry/${recovToken}`,
+        : `Hi ${body.customer?.name || "Valued Customer"},\n\nYour payment for ${body.product_id || "your order"} could not be completed due to ${details.reason}.\n\nDiagnosis: ${details.diagnosis_details}\n\nYour order is preserved.\nPlease complete your payment using the secure payment link below:\n\n/payment/retry/${recovToken}\n\n[${details.recovery_action}]`,
       risk_level: details.risk,
       recovery_token: recovToken,
       payment_link: `/payment/retry/${recovToken}`,

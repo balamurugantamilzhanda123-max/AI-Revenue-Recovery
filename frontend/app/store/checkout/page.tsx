@@ -1103,18 +1103,36 @@ export default function CustomerCheckoutPage() {
                 <AlertCircle className="w-7 h-7" />
               </div>
 
-              <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 uppercase tracking-widest">
-                PAYMENT ATTEMPT FAILED
-              </span>
+              <div className="flex items-center justify-center gap-2 mb-2 flex-wrap">
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 uppercase tracking-widest">
+                  {paymentResult.scenario_label || "PAYMENT ATTEMPT FAILED"}
+                </span>
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-widest">
+                  REVIVEAI ACTIVE
+                </span>
+              </div>
 
-              <h2 className="text-xl font-black text-white mt-2 mb-1">
-                Payment Could Not Be Completed
+              <h2 className="text-xl font-black text-white mt-1 mb-1">
+                {paymentResult.diagnosis_title || "Payment Could Not Be Completed"}
               </h2>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
                 {paymentResult.customer_message}
               </p>
 
-              <div className="my-5 p-4 bg-slate-950 rounded-2xl border border-slate-800 text-xs text-left space-y-2">
+              {/* Technical Diagnosis Box */}
+              {paymentResult.diagnosis_details && (
+                <div className="mt-4 p-3.5 bg-slate-950/80 rounded-2xl border border-indigo-500/30 text-left space-y-1">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-400">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>AUTONOMOUS ROOT CAUSE DIAGNOSIS & POLICY</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                    {paymentResult.diagnosis_details}
+                  </p>
+                </div>
+              )}
+
+              <div className="my-4 p-4 bg-slate-950 rounded-2xl border border-slate-800 text-xs text-left space-y-2">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Order ID:</span>
                   <span className="text-white font-bold">{paymentResult.order_id}</span>
@@ -1157,7 +1175,7 @@ export default function CustomerCheckoutPage() {
                   className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  <span>COMPLETE PAYMENT / RETRY NOW</span>
+                  <span>{paymentResult.recovery_action_label || "COMPLETE PAYMENT / RETRY NOW"}</span>
                 </Link>
 
                 <div className="flex items-center justify-between text-xs text-slate-400 px-2">

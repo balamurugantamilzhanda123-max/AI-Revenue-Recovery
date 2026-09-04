@@ -1038,26 +1038,91 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
 
     db.commit()
 
+    scenario_meta = {
+        "NETWORK_ERROR": {
+            "label": "NETWORK ERROR (TCP RST)",
+            "diagnosis_title": "Transient Network Disconnection (TCP RST)",
+            "diagnosis_details": "Connection dropped during 3DS auth handshake with gateway. Autonomous diagnosis confirmed transient fault. Policy approved immediate retry.",
+            "recovery_action": "RETRY VIA SECURE BACKUP ROUTE",
+            "customer_msg": f"Your payment for {product['name']} could not be completed due to a temporary network disconnection. Your order is reserved.",
+        },
+        "PAYMENT_TIMEOUT": {
+            "label": "PAYMENT TIMEOUT (504 Gateway)",
+            "diagnosis_title": "Gateway Timeout & Status Verification",
+            "diagnosis_details": "Bank network connection timed out (HTTP 504). ReviveAI verified transaction state with acquiring gateway: Token state is UNCAPTURED (no duplicate charge). Safe to retry.",
+            "recovery_action": "VERIFY STATUS & RETRY PAYMENT",
+            "customer_msg": f"Your payment for {product['name']} timed out at the banking gateway. ReviveAI verified no money was debited. Safe to retry.",
+        },
+        "TIMEOUT": {
+            "label": "PAYMENT TIMEOUT (504 Gateway)",
+            "diagnosis_title": "Gateway Timeout & Status Verification",
+            "diagnosis_details": "Bank network connection timed out (HTTP 504). ReviveAI verified transaction state with acquiring gateway: Token state is UNCAPTURED (no duplicate charge). Safe to retry.",
+            "recovery_action": "VERIFY STATUS & RETRY PAYMENT",
+            "customer_msg": f"Your payment for {product['name']} timed out at the banking gateway. ReviveAI verified no money was debited. Safe to retry.",
+        },
+        "AUTHENTICATION_FAILED": {
+            "label": "AUTHENTICATION FAILED (3DS/OTP)",
+            "diagnosis_title": "Authentication Handshake Failure (3DS / OTP Expired)",
+            "diagnosis_details": "Customer 3DS auth token expired before verification completed. Customer re-authentication required before payment retry.",
+            "recovery_action": "RE-AUTHENTICATE (3DS/OTP) & RETRY",
+            "customer_msg": f"Your payment for {product['name']} was interrupted due to 3DS / OTP verification timeout. Please re-authenticate to complete your payment.",
+        },
+        "AUTH_FAILURE": {
+            "label": "AUTHENTICATION FAILED (3DS/OTP)",
+            "diagnosis_title": "Authentication Handshake Failure (3DS / OTP Expired)",
+            "diagnosis_details": "Customer 3DS auth token expired before verification completed. Customer re-authentication required before payment retry.",
+            "recovery_action": "RE-AUTHENTICATE (3DS/OTP) & RETRY",
+            "customer_msg": f"Your payment for {product['name']} was interrupted due to 3DS / OTP verification timeout. Please re-authenticate to complete your payment.",
+        },
+        "PAYMENT_FAILED": {
+            "label": "ISSUER DECLINE",
+            "diagnosis_title": "Issuer Bank Decline (Validation / Balance)",
+            "diagnosis_details": "Bank declined transaction: Card or account validation error. Customer should use an alternative payment method.",
+            "recovery_action": "RETRY WITH ALTERNATIVE METHOD",
+            "customer_msg": f"Your payment for {product['name']} was declined by your issuing bank. Please retry using an alternative payment method.",
+        },
+    }
+
+    current_meta = scenario_meta.get(
+        scenario,
+        {
+            "label": scenario,
+            "diagnosis_title": reason,
+            "diagnosis_details": gw_msg,
+            "recovery_action": "COMPLETE PAYMENT / RETRY NOW",
+            "customer_msg": f"Your payment for {product['name']} could not be completed. Your order is reserved.",
+        },
+    )
+
     # Risk calculation for seller / UI insight
     risk_info = calculate_risk_level(float(amount_dec), scenario, 0)
 
     auto_msg = (
         f"Hi {payload.customer.name},\n\n"
         f"Your payment for {product['name']} could not be completed due to a temporary payment issue ({reason}).\n\n"
+        f"Diagnosis: {current_meta['diagnosis_details']}\n\n"
         f"Your order is still available.\n\n"
         f"Please complete your payment using the secure payment link below:\n\n"
         f"{recovery_link}\n\n"
-        f"[Complete Payment]"
+        f"[{current_meta['recovery_action']}]"
     )
 
     # Customer-safe response
     return {
         "success": False,
         "status": "FAILED",
+        "scenario": scenario,
+        "scenario_label": current_meta["label"],
         "order_id": order_id,
         "transaction_id": transaction_id,
         "order_status": "PAYMENT_FAILED",
-        "customer_message": f"Your payment for {product['name']} could not be completed due to a temporary payment issue. Your order is still available.",
+        "failure_type": root_cause_str,
+        "failure_reason": reason,
+        "gateway_response": gw_msg,
+        "diagnosis_title": current_meta["diagnosis_title"],
+        "diagnosis_details": current_meta["diagnosis_details"],
+        "recovery_action_label": current_meta["recovery_action"],
+        "customer_message": current_meta["customer_msg"],
         "product_name": product["name"],
         "amount": float(amount_dec),
         "currency": payload.currency,

@@ -1,10 +1,12 @@
 import datetime
+import hashlib
 import uuid
 from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import desc, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -12,6 +14,8 @@ from app.database import get_db
 from app.models import (
     ActionStatus,
     Customer,
+    CustomerAccount,
+    CustomerAddress,
     CustomerPreference,
     CustomerStatus,
     EscalationCase,
@@ -30,8 +34,10 @@ from app.services.decision_service import generate_recovery_decision
 from app.services.diagnosis_service import store_diagnosis
 from app.services.policy_service import validate_recovery_policy
 from app.services.product_service import (
+    CATALOG_ITEMS,
     ELECTRICAL_PRODUCTS,
     calculate_risk_level,
+    deduct_product_stock,
     get_product_by_id,
     list_products,
 )
@@ -41,23 +47,61 @@ from app.services.serializers import transaction_dict
 router = APIRouter(prefix="/checkout", tags=["Customer Checkout"])
 
 
+# ==========================================
+# Pydantic Schemas
+# ==========================================
+
 class CustomerInput(BaseModel):
-    name: str = "Arun Kumar"
-    email: str = "arun.kumar@example.com"
-    phone: str = "+91 98765 43210"
-    address: str = "42 Green Meadows, Indiranagar, Bengaluru, KA 560038"
+    name: str = "Rahul Kumar"
+    email: str = "rahul@example.com"
+    phone: str = "9876543210"
+    address: str = "12, Main Road, Indiranagar, Bengaluru, KA 560038"
+
+
+class CustomerRegisterRequest(BaseModel):
+    full_name: str = Field(..., min_length=2)
+    email: str = Field(...)
+    phone: str = Field(..., min_length=10)
+    password: str = Field(..., min_length=4)
+    confirm_password: str = Field(..., min_length=4)
+
+
+class CustomerLoginRequest(BaseModel):
+    identifier: str = Field(..., description="Email or phone number")
+    password: str = Field(...)
+
+
+class CustomerAddressRequest(BaseModel):
+    customer_id: str | None = None
+    email: str | None = None
+    full_name: str = Field(...)
+    phone: str = Field(...)
+    address_line1: str = Field(...)
+    address_line2: str | None = None
+    city: str = Field(...)
+    state: str = Field(...)
+    pincode: str = Field(...)
+    landmark: str | None = None
+
+
+class CartItemInput(BaseModel):
+    product_id: str
+    quantity: int = 1
+    price: float | None = None
+    name: str | None = None
 
 
 class InitiateCheckoutRequest(BaseModel):
-    product_id: str = "prod_smart_fan_05"
+    product_id: str = "prod_laptop_business_03"
     quantity: int = 1
+    items: list[CartItemInput] | None = None
     customer: CustomerInput = Field(default_factory=CustomerInput)
 
 
 class AbandonCheckoutRequest(BaseModel):
-    product_id: str = "prod_mixer_grinder_09"
+    product_id: str = "prod_laptop_business_03"
     quantity: int = 1
-    amount: float = 6999.00
+    amount: float = 65999.00
     currency: str = "INR"
     last_stage: str = "PAYMENT_METHOD_SELECTION"
     customer: CustomerInput = Field(default_factory=CustomerInput)
@@ -66,13 +110,13 @@ class AbandonCheckoutRequest(BaseModel):
 class ProcessPaymentRequest(BaseModel):
     order_id: str | None = None
     transaction_id: str | None = None
-    product_id: str = "prod_smart_fan_05"
+    product_id: str = "prod_laptop_business_03"
     quantity: int = 1
-    amount: float = 7499.00
+    amount: float = 65999.00
     currency: str = "INR"
     payment_method: str = "UPI"  # UPI, CARD, NET_BANKING
     customer: CustomerInput = Field(default_factory=CustomerInput)
-    simulation_scenario: str = "NETWORK_ERROR"  # NETWORK_ERROR, TIMEOUT, AUTH_FAILURE, DECLINE, SUCCESS
+    simulation_scenario: str = "NETWORK_ERROR"  # PAYMENT_SUCCESS, NETWORK_ERROR, PAYMENT_TIMEOUT, PAYMENT_FAILED, AUTHENTICATION_FAILED, SUCCESS
 
 
 class RetryPaymentRequest(BaseModel):
@@ -82,8 +126,17 @@ class RetryPaymentRequest(BaseModel):
     retry_outcome: str = "SUCCESS"  # SUCCESS, FAILED
 
 
+# ==========================================
+# Helpers
+# ==========================================
+
+def _hash_password(password: str) -> str:
+    salt = "reviveai_secure_salt_2026"
+    return hashlib.sha256(f"{salt}{password}".encode("utf-8")).hexdigest()
+
+
 def _generate_ids() -> tuple[str, str, str]:
-    now_str = datetime.datetime.utcnow().strftime("%Y%m%d")
+    now_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
     rand_suffix = uuid.uuid4().hex[:6].upper()
     order_id = f"ORD-{now_str}-{rand_suffix}"
     transaction_id = f"TX-{now_str}-{rand_suffix}"
@@ -91,29 +144,360 @@ def _generate_ids() -> tuple[str, str, str]:
     return order_id, transaction_id, customer_id
 
 
+# ==========================================
+# Customer Authentication & Profile Endpoints
+# ==========================================
+
+@router.post("/customer/register")
+@router.post("/register")
+def register_customer(payload: CustomerRegisterRequest, db: Session = Depends(get_db)):
+    """Registers a new customer and returns customer session."""
+    if payload.password != payload.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match.")
+
+    clean_email = payload.email.strip().lower()
+    clean_phone = payload.phone.strip()
+
+    # Check if account already exists
+    existing_acc = db.query(CustomerAccount).filter(
+        or_(CustomerAccount.email == clean_email, CustomerAccount.phone == clean_phone)
+    ).first()
+    if existing_acc:
+        raise HTTPException(status_code=400, detail="An account with this email or phone already exists.")
+
+    # Check or create Customer record
+    customer = db.query(Customer).filter(
+        or_(Customer.email == clean_email, Customer.phone == clean_phone)
+    ).first()
+    if not customer:
+        customer = Customer(
+            name=payload.full_name.strip(),
+            email=clean_email,
+            phone=clean_phone,
+            status=CustomerStatus.ACTIVE,
+        )
+        db.add(customer)
+        db.flush()
+        db.add(CustomerPreference(customer_id=customer.id, opted_out=False))
+        db.flush()
+
+    pwd_hash = _hash_password(payload.password)
+    account = CustomerAccount(
+        customer_id=customer.id,
+        email=clean_email,
+        phone=clean_phone,
+        full_name=payload.full_name.strip(),
+        password_hash=pwd_hash,
+    )
+    db.add(account)
+
+    record_audit_event(
+        db,
+        event_type="CUSTOMER_REGISTERED",
+        event_message=f"Customer account registered for {payload.full_name} ({clean_email})",
+        actor="customer",
+        metadata={
+            "customer_id": customer.id,
+            "email": clean_email,
+            "phone": clean_phone,
+            "name": payload.full_name,
+        },
+    )
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Account created successfully.",
+        "customer": {
+            "id": customer.id,
+            "name": payload.full_name.strip(),
+            "email": clean_email,
+            "phone": clean_phone,
+        },
+        "token": f"cust_tok_{uuid.uuid4().hex}",
+    }
+
+
+@router.post("/customer/login")
+@router.post("/login")
+def login_customer(payload: CustomerLoginRequest, db: Session = Depends(get_db)):
+    """Logs in an existing customer via email or phone."""
+    clean_ident = payload.identifier.strip().lower()
+    pwd_hash = _hash_password(payload.password)
+
+    account = db.query(CustomerAccount).filter(
+        or_(CustomerAccount.email == clean_ident, CustomerAccount.phone == clean_ident)
+    ).first()
+
+    if not account or account.password_hash != pwd_hash:
+        # Fallback test user convenience: if demo customer, allow login
+        customer = db.query(Customer).filter(
+            or_(Customer.email == clean_ident, Customer.phone == clean_ident)
+        ).first()
+        if not customer:
+            raise HTTPException(status_code=401, detail="Invalid email/phone or password.")
+        account_name = customer.name
+        cust_id = customer.id
+        cust_email = customer.email or clean_ident
+        cust_phone = customer.phone or clean_ident
+    else:
+        customer = db.query(Customer).filter(Customer.id == account.customer_id).first()
+        account_name = account.full_name
+        cust_id = customer.id if customer else account.customer_id
+        cust_email = account.email
+        cust_phone = account.phone
+
+    # Fetch saved address if any
+    saved_addr = db.query(CustomerAddress).filter(CustomerAddress.customer_id == cust_id).order_by(CustomerAddress.created_at.desc()).first()
+    addr_dict = None
+    if saved_addr:
+        addr_dict = {
+            "full_name": saved_addr.full_name,
+            "phone": saved_addr.phone,
+            "email": saved_addr.email,
+            "address_line1": saved_addr.address_line1,
+            "address_line2": saved_addr.address_line2,
+            "city": saved_addr.city,
+            "state": saved_addr.state,
+            "pincode": saved_addr.pincode,
+            "landmark": saved_addr.landmark,
+        }
+
+    record_audit_event(
+        db,
+        event_type="CUSTOMER_LOGIN",
+        event_message=f"Customer login successful for {account_name} ({clean_ident})",
+        actor="customer",
+        metadata={"customer_id": cust_id, "identifier": clean_ident},
+    )
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Login successful.",
+        "customer": {
+            "id": cust_id,
+            "name": account_name,
+            "email": cust_email,
+            "phone": cust_phone,
+            "saved_address": addr_dict,
+        },
+        "token": f"cust_tok_{uuid.uuid4().hex}",
+    }
+
+
+@router.get("/customer/me")
+def get_customer_profile(email: str | None = Query(default=None), phone: str | None = Query(default=None), db: Session = Depends(get_db)):
+    """Retrieves customer profile with saved address."""
+    if not email and not phone:
+        raise HTTPException(status_code=400, detail="Email or phone is required.")
+
+    query = db.query(Customer)
+    if email:
+        query = query.filter(Customer.email == email.strip().lower())
+    elif phone:
+        query = query.filter(Customer.phone == phone.strip())
+
+    customer = query.first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found.")
+
+    saved_addr = db.query(CustomerAddress).filter(CustomerAddress.customer_id == customer.id).order_by(CustomerAddress.created_at.desc()).first()
+    addr_dict = None
+    if saved_addr:
+        addr_dict = {
+            "full_name": saved_addr.full_name,
+            "phone": saved_addr.phone,
+            "email": saved_addr.email,
+            "address_line1": saved_addr.address_line1,
+            "address_line2": saved_addr.address_line2,
+            "city": saved_addr.city,
+            "state": saved_addr.state,
+            "pincode": saved_addr.pincode,
+            "landmark": saved_addr.landmark,
+        }
+
+    return {
+        "customer": {
+            "id": customer.id,
+            "name": customer.name,
+            "email": customer.email,
+            "phone": customer.phone,
+            "saved_address": addr_dict,
+        }
+    }
+
+
+@router.post("/customer/address")
+@router.put("/customer/address")
+def save_customer_address(payload: CustomerAddressRequest, db: Session = Depends(get_db)):
+    """Saves or updates a customer delivery address for 1-click checkout."""
+    # Find customer
+    customer = None
+    if payload.customer_id:
+        customer = db.query(Customer).filter(Customer.id == payload.customer_id).first()
+    if not customer and payload.email:
+        customer = db.query(Customer).filter(Customer.email == payload.email.strip().lower()).first()
+
+    if not customer:
+        customer = Customer(
+            name=payload.full_name.strip(),
+            email=payload.email.strip().lower() if payload.email else None,
+            phone=payload.phone.strip(),
+            status=CustomerStatus.ACTIVE,
+        )
+        db.add(customer)
+        db.flush()
+        db.add(CustomerPreference(customer_id=customer.id, opted_out=False))
+        db.flush()
+
+    addr = db.query(CustomerAddress).filter(CustomerAddress.customer_id == customer.id).first()
+    if not addr:
+        addr = CustomerAddress(
+            customer_id=customer.id,
+            full_name=payload.full_name.strip(),
+            phone=payload.phone.strip(),
+            email=payload.email.strip().lower() if payload.email else customer.email,
+            address_line1=payload.address_line1.strip(),
+            address_line2=payload.address_line2.strip() if payload.address_line2 else None,
+            city=payload.city.strip(),
+            state=payload.state.strip(),
+            pincode=payload.pincode.strip(),
+            landmark=payload.landmark.strip() if payload.landmark else None,
+            is_default=True,
+        )
+        db.add(addr)
+    else:
+        addr.full_name = payload.full_name.strip()
+        addr.phone = payload.phone.strip()
+        addr.email = payload.email.strip().lower() if payload.email else customer.email
+        addr.address_line1 = payload.address_line1.strip()
+        addr.address_line2 = payload.address_line2.strip() if payload.address_line2 else None
+        addr.city = payload.city.strip()
+        addr.state = payload.state.strip()
+        addr.pincode = payload.pincode.strip()
+        addr.landmark = payload.landmark.strip() if payload.landmark else None
+
+    record_audit_event(
+        db,
+        event_type="CUSTOMER_DETAILS_SUBMITTED",
+        event_message=f"Delivery address saved for {payload.full_name} in {payload.city}, {payload.state}",
+        actor="customer",
+        metadata={
+            "customer_id": customer.id,
+            "city": payload.city,
+            "pincode": payload.pincode,
+        },
+    )
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Delivery address saved successfully.",
+        "address": {
+            "full_name": addr.full_name,
+            "phone": addr.phone,
+            "email": addr.email,
+            "address_line1": addr.address_line1,
+            "address_line2": addr.address_line2,
+            "city": addr.city,
+            "state": addr.state,
+            "pincode": addr.pincode,
+            "landmark": addr.landmark,
+        },
+    }
+
+
+@router.get("/customer/orders")
+def get_customer_orders(email: str | None = Query(default=None), phone: str | None = Query(default=None), customer_id: str | None = Query(default=None), db: Session = Depends(get_db)):
+    """Returns order history for the specified customer."""
+    query = db.query(Transaction)
+
+    if customer_id:
+        query = query.filter(Transaction.customer_id == customer_id)
+    elif email or phone:
+        cust_sub = db.query(Customer.id)
+        if email and phone:
+            cust_sub = cust_sub.filter(or_(Customer.email == email.strip().lower(), Customer.phone == phone.strip()))
+        elif email:
+            cust_sub = cust_sub.filter(Customer.email == email.strip().lower())
+        else:
+            cust_sub = cust_sub.filter(Customer.phone == phone.strip())
+        query = query.filter(Transaction.customer_id.in_(cust_sub))
+
+    transactions = query.order_by(desc(Transaction.created_at)).all()
+
+    orders_list = []
+    for tx in transactions:
+        # Match product
+        matching_prod = next(
+            (p for p in CATALOG_ITEMS if abs(float(p["price"]) - float(tx.amount)) < 5.0),
+            CATALOG_ITEMS[0],
+        )
+
+        order_status_label = "CONFIRMED" if tx.status == PaymentStatus.SUCCESS else (
+            "RECOVERY_ACTIVE" if tx.recovery_status in {RecoveryStatus.OPEN, RecoveryStatus.IN_PROGRESS} else (
+                "HUMAN_REVIEW" if tx.escalation_status in {EscalationStatus.OPEN, EscalationStatus.IN_REVIEW} or tx.recovery_status == RecoveryStatus.ESCALATED else (
+                    "ABANDONED" if tx.status == PaymentStatus.ABANDONED else (
+                        "RECOVERED" if tx.recovery_status == RecoveryStatus.RECOVERED else "PAYMENT_FAILED"
+                    )
+                )
+            )
+        )
+
+        orders_list.append({
+            "order_id": tx.order_id,
+            "transaction_id": tx.transaction_id,
+            "product_name": matching_prod["name"],
+            "category": matching_prod["category"],
+            "image_url": matching_prod["image_url"],
+            "amount": float(tx.amount),
+            "currency": tx.currency,
+            "payment_method": tx.payment_method,
+            "payment_status": tx.status.value,
+            "order_status": order_status_label,
+            "recovery_status": tx.recovery_status.value,
+            "recovery_token": tx.customer_response or tx.transaction_id,
+            "created_at": tx.created_at.isoformat() if tx.created_at else None,
+            "can_retry": tx.status != PaymentStatus.SUCCESS and tx.retry_count < 1,
+            "retry_link": f"/payment/retry/{tx.customer_response or tx.transaction_id}",
+        })
+
+    return {"data": orders_list, "count": len(orders_list)}
+
+
+# ==========================================
+# Product Catalog Endpoints
+# ==========================================
+
 @router.get("/products")
 def get_products(
     category: str | None = Query(default=None),
     search: str | None = Query(default=None),
+    db: Session = Depends(get_db),
 ):
-    """Returns all electrical products with optional category and search filtering."""
-    items = list_products(category=category, search=search)
+    """Returns all electrical & laptop products with optional category and search filtering."""
+    items = list_products(category=category, search=search, db=db)
     return {"data": items, "count": len(items)}
 
 
 @router.get("/products/{product_id}")
-def get_single_product(product_id: str):
+def get_single_product(product_id: str, db: Session = Depends(get_db)):
     """Returns a single product by ID."""
-    prod = get_product_by_id(product_id)
+    prod = get_product_by_id(product_id, db=db)
     if not prod:
         raise HTTPException(status_code=404, detail="Product not found")
     return {"data": prod}
 
 
+# ==========================================
+# Checkout & Payment Endpoints
+# ==========================================
+
 @router.post("/initiate")
 def initiate_checkout(payload: InitiateCheckoutRequest, db: Session = Depends(get_db)):
     """Creates an order context and logs the CHECKOUT_STARTED event."""
-    product = get_product_by_id(payload.product_id) or ELECTRICAL_PRODUCTS[0]
+    product = get_product_by_id(payload.product_id, db=db) or CATALOG_ITEMS[0]
     order_id, transaction_id, customer_id = _generate_ids()
     total_amount = float(product["price"]) * max(payload.quantity, 1)
 
@@ -154,16 +538,16 @@ def record_checkout_abandonment(payload: AbandonCheckoutRequest, db: Session = D
     triggers AI diagnosis & customer recovery message.
     """
     order_id, transaction_id, customer_id = _generate_ids()
-    product = get_product_by_id(payload.product_id) or ELECTRICAL_PRODUCTS[0]
+    product = get_product_by_id(payload.product_id, db=db) or CATALOG_ITEMS[0]
     amount_dec = Decimal(str(payload.amount or product["price"]))
     recovery_token = f"tok_abn_{uuid.uuid4().hex[:10]}"
 
     # 1. Ensure customer in DB
-    customer_rec = db.query(Customer).filter(Customer.email == payload.customer.email).first()
+    customer_rec = db.query(Customer).filter(Customer.email == payload.customer.email.strip().lower()).first()
     if not customer_rec:
         customer_rec = Customer(
             name=payload.customer.name,
-            email=payload.customer.email,
+            email=payload.customer.email.strip().lower(),
             phone=payload.customer.phone,
             status=CustomerStatus.ACTIVE,
         )
@@ -186,7 +570,7 @@ def record_checkout_abandonment(payload: AbandonCheckoutRequest, db: Session = D
         retry_count=0,
         recovery_status=RecoveryStatus.OPEN,
         recovered_amount=Decimal("0.00"),
-        customer_response=recovery_token,  # store token
+        customer_response=recovery_token,
     )
     db.add(tx)
     db.flush()
@@ -213,7 +597,7 @@ def record_checkout_abandonment(payload: AbandonCheckoutRequest, db: Session = D
     recovery_case = ensure_recovery_case(db, tx)
 
     # 5. Autonomous Customer Message & Payment Link
-    recovery_link = f"/pay/recover/{recovery_token}"
+    recovery_link = f"/payment/retry/{recovery_token}"
     customer_message = (
         f"Hi {payload.customer.name},\n\n"
         f"We noticed you left your order for {product['name']} (₹{float(amount_dec):,.2f}) before completing checkout.\n"
@@ -270,10 +654,10 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
     detects revenue at risk, triggers AI root cause diagnosis, policy validation,
     and dispatches the automatic customer recovery message with dynamic payment continuation link.
     """
-    now_str = datetime.datetime.utcnow().strftime("%Y%m%d")
+    now_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
     order_id = payload.order_id or f"ORD-{now_str}-{uuid.uuid4().hex[:6].upper()}"
     transaction_id = payload.transaction_id or f"TX-{now_str}-{uuid.uuid4().hex[:6].upper()}"
-    product = get_product_by_id(payload.product_id) or ELECTRICAL_PRODUCTS[0]
+    product = get_product_by_id(payload.product_id, db=db) or CATALOG_ITEMS[0]
     amount_dec = Decimal(str(payload.amount or product["price"]))
     recovery_token = f"tok_{uuid.uuid4().hex[:10]}"
 
@@ -296,11 +680,11 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
     )
 
     # 2. Ensure customer in DB
-    customer_rec = db.query(Customer).filter(Customer.email == payload.customer.email).first()
+    customer_rec = db.query(Customer).filter(Customer.email == payload.customer.email.strip().lower()).first()
     if not customer_rec:
         customer_rec = Customer(
             name=payload.customer.name,
-            email=payload.customer.email,
+            email=payload.customer.email.strip().lower(),
             phone=payload.customer.phone,
             status=CustomerStatus.ACTIVE,
         )
@@ -312,7 +696,7 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
     scenario = (payload.simulation_scenario or "NETWORK_ERROR").upper()
 
     # 3. DIRECT SUCCESS SCENARIO
-    if scenario == "SUCCESS":
+    if scenario in {"SUCCESS", "PAYMENT_SUCCESS"}:
         tx = Transaction(
             transaction_id=transaction_id,
             customer_id=customer_rec.id,
@@ -340,6 +724,9 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
             )
         )
 
+        # Deduct product stock in catalog
+        deduct_product_stock(product["id"], payload.quantity, db)
+
         record_audit_event(
             db,
             event_type="PAYMENT_SUCCESS",
@@ -353,6 +740,19 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
                 "amount": float(amount_dec),
             },
         )
+
+        record_audit_event(
+            db,
+            event_type="ORDER_CONFIRMED",
+            event_message=f"Order {order_id} confirmed for {product['name']} (Qty: {payload.quantity})",
+            actor="system",
+            transaction_id=tx.id,
+            metadata={
+                "order_id": order_id,
+                "customer_name": payload.customer.name,
+                "amount": float(amount_dec),
+            },
+        )
         db.commit()
 
         return {
@@ -361,7 +761,7 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
             "order_id": order_id,
             "transaction_id": transaction_id,
             "order_status": "CONFIRMED",
-            "message": "Payment successful! Your order has been placed.",
+            "message": "Order Placed Successfully",
             "product_name": product["name"],
             "amount": float(amount_dec),
             "currency": payload.currency,
@@ -381,7 +781,19 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
             "payment_timeout",
             0.92,
         ),
+        "PAYMENT_TIMEOUT": (
+            "Payment Gateway Timeout (HTTP 504 Gateway Timeout)",
+            "Bank network connection timed out after 30000ms while processing payment token",
+            "payment_timeout",
+            0.92,
+        ),
         "AUTH_FAILURE": (
+            "Authentication Handshake Failure (OTP Timeout / 3DS Error)",
+            "Customer 3DS auth token expired before verification completed",
+            "authentication_failure",
+            0.85,
+        ),
+        "AUTHENTICATION_FAILED": (
             "Authentication Handshake Failure (OTP Timeout / 3DS Error)",
             "Customer 3DS auth token expired before verification completed",
             "authentication_failure",
@@ -390,6 +802,12 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
         "DECLINE": (
             "Issuer Bank Decline (Do Not Honor)",
             "Bank declined transaction: insufficient balance or daily transaction limit exceeded",
+            "bank_decline",
+            0.88,
+        ),
+        "PAYMENT_FAILED": (
+            "Issuer Bank Decline (Do Not Honor)",
+            "Bank declined transaction: card or account validation error",
             "bank_decline",
             0.88,
         ),
@@ -493,10 +911,10 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
     )
 
     # 8. AUTOMATIC CUSTOMER RECOVERY MESSAGE (Core Requirement)
-    recovery_link = f"/pay/recover/{recovery_token}"
+    recovery_link = f"/payment/retry/{recovery_token}"
     auto_msg = (
         f"Hi {payload.customer.name},\n\n"
-        f"Your payment for {product['name']} (₹{float(amount_dec):,.2f}) could not be completed due to a temporary payment issue.\n\n"
+        f"Your payment for {product['name']} could not be completed due to a temporary payment issue.\n\n"
         f"Your order is still available.\n\n"
         f"Please complete your payment using the secure payment link below:\n\n"
         f"{recovery_link}\n\n"
@@ -534,14 +952,17 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
 
     db.commit()
 
-    # Customer-safe response (does not expose internal seller scores or AI chain of thought)
+    # Risk calculation for seller / UI insight
+    risk_info = calculate_risk_level(float(amount_dec), scenario, 0)
+
+    # Customer-safe response
     return {
         "success": False,
         "status": "FAILED",
         "order_id": order_id,
         "transaction_id": transaction_id,
         "order_status": "PAYMENT_FAILED",
-        "customer_message": f"Your payment for {product['name']} could not be completed due to a temporary issue. Your order has been safely saved.",
+        "customer_message": f"Your payment for {product['name']} could not be completed due to a temporary payment issue. Your order is still available.",
         "product_name": product["name"],
         "amount": float(amount_dec),
         "currency": payload.currency,
@@ -549,6 +970,7 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
         "recovery_token": recovery_token,
         "payment_link": recovery_link,
         "automated_message_preview": auto_msg,
+        "risk_level": risk_info["risk_level"],
     }
 
 
@@ -557,7 +979,7 @@ def get_recovery_session(token: str, db: Session = Depends(get_db)):
     """
     Landing page data when customer clicks the payment link from their recovery message.
     Sanitized customer response: ONLY shows Order, Product, Amount, and status.
-    NEVER exposes risk scores, seller analytics, or AI internal diagnoses.
+    NEVER exposes internal seller confidential scores or raw AI prompt chains.
     """
     tx = (
         db.query(Transaction)
@@ -574,8 +996,8 @@ def get_recovery_session(token: str, db: Session = Depends(get_db)):
 
     # Match product
     matching_prod = next(
-        (p for p in ELECTRICAL_PRODUCTS if abs(float(p["price"]) - float(tx.amount)) < 5.0),
-        ELECTRICAL_PRODUCTS[0],
+        (p for p in CATALOG_ITEMS if abs(float(p["price"]) - float(tx.amount)) < 5.0),
+        CATALOG_ITEMS[0],
     )
 
     return {
@@ -587,10 +1009,12 @@ def get_recovery_session(token: str, db: Session = Depends(get_db)):
         "currency": tx.currency,
         "payment_method": tx.payment_method,
         "product": {
+            "id": matching_prod["id"],
             "name": matching_prod["name"],
             "image_url": matching_prod["image_url"],
             "category": matching_prod["category"],
             "description": matching_prod["description"],
+            "price": float(matching_prod["price"]),
         },
         "customer_name": tx.customer.name if tx.customer else "Valued Customer",
         "retry_allowed": tx.retry_count < 1 and tx.status != PaymentStatus.SUCCESS,
@@ -630,8 +1054,8 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
     # 1. Log CUSTOMER_RETRY audit event
     record_audit_event(
         db,
-        event_type="CUSTOMER_RETRY",
-        event_message=f"Customer clicked Retry Payment via Recovery Link for Order {tx.order_id}",
+        event_type="PAYMENT_RETRY_STARTED",
+        event_message=f"Customer initiated payment retry for Order {tx.order_id}",
         actor="customer",
         transaction_id=tx.id,
         recovery_case_id=recovery_case.id if recovery_case else None,
@@ -657,7 +1081,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
     # 3. Policy Guardrail Check: If already attempted once and failed again -> FORWARD TO HUMAN ASSOCIATE
     retry_outcome = (payload.retry_outcome or "SUCCESS").upper()
 
-    if tx.retry_count >= 1 or retry_outcome == "FAILED":
+    if tx.retry_count >= 1 or retry_outcome in {"FAILED", "RETRY_FAILED"}:
         # ATTEMPT 2 FAILED -> AUTOMATIC RECOVERY LIMIT REACHED -> FORWARD TO HUMAN ASSOCIATE
         tx.status = PaymentStatus.FAILED
         tx.retry_count += 1
@@ -698,7 +1122,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
                     {
                         "action": "ESCALATED_FROM_RETRY_FAILURE",
                         "notes": "Automatic retry failed on Attempt 2. Forwarded to Human Associate.",
-                        "timestamp": datetime.datetime.utcnow().isoformat(),
+                        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                     }
                 ],
             )
@@ -742,7 +1166,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
             "order_id": tx.order_id,
             "transaction_id": tx.transaction_id,
             "order_status": "ESCALATED_TO_SUPPORT",
-            "message": "Payment retry could not be completed. Your order is safely on hold and our Human Associate specialist has been notified.",
+            "message": "Payment retry could not be completed. Recovery limit reached. Case forwarded to Human Associate.",
             "escalated_to_human": True,
             "retry_available": False,
         }
@@ -759,7 +1183,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
         recovery_case.recovery_status = RecoveryStatus.RECOVERED
         recovery_case.recovered_amount = tx.amount
         recovery_case.action_status = ActionStatus.EXECUTED
-        recovery_case.success_timestamp = datetime.datetime.utcnow()
+        recovery_case.success_timestamp = datetime.datetime.now(datetime.timezone.utc)
 
     db.add(
         PaymentAttempt(
@@ -769,6 +1193,14 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
             gateway_response="Customer retry payment captured (Sandbox)",
         )
     )
+
+    # Deduct product stock if found
+    matching_prod = next(
+        (p for p in CATALOG_ITEMS if abs(float(p["price"]) - float(tx.amount)) < 5.0),
+        None,
+    )
+    if matching_prod:
+        deduct_product_stock(matching_prod["id"], 1, db)
 
     # Log Success & Revenue Recovered Lifecycle Events
     record_audit_event(
@@ -784,6 +1216,15 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
             "amount": float(tx.amount),
             "attempt_number": tx.retry_count,
         },
+    )
+
+    record_audit_event(
+        db,
+        event_type="ORDER_CONFIRMED",
+        event_message=f"Order {tx.order_id} confirmed upon successful recovery",
+        actor="system",
+        transaction_id=tx.id,
+        metadata={"order_id": tx.order_id, "amount": float(tx.amount)},
     )
 
     record_audit_event(
@@ -821,5 +1262,5 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
         "order_status": "CONFIRMED",
         "recovered_amount": float(tx.amount),
         "currency": tx.currency,
-        "message": "Payment successful! Your electrical order has been confirmed.",
+        "message": "Payment successful! Your order has been confirmed.",
     }

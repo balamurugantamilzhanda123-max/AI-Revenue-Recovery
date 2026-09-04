@@ -408,3 +408,92 @@ class IdempotencyKey(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    category: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    subcategory: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    discount_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    stock: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
+    image_url: Mapped[str] = mapped_column(Text, nullable=False)
+    rating: Mapped[float] = mapped_column(Numeric(3, 2), nullable=False, default=4.5)
+    reviews_count: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
+    badge: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    specifications: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    availability: Mapped[str] = mapped_column(String(40), nullable=False, default="IN_STOCK")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class CustomerAccount(Base):
+    __tablename__ = "customer_accounts"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=uuid_string)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("customers.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    phone: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class CustomerAddress(Base):
+    __tablename__ = "customer_addresses"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=uuid_string)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("customers.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    phone: Mapped[str] = mapped_column(String(40), nullable=False)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    address_line1: Mapped[str] = mapped_column(String(255), nullable=False)
+    address_line2: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    city: Mapped[str] = mapped_column(String(100), nullable=False)
+    state: Mapped[str] = mapped_column(String(100), nullable=False)
+    pincode: Mapped[str] = mapped_column(String(20), nullable=False)
+    landmark: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+

@@ -28,5 +28,15 @@ def reset_database():
 
 
 @pytest.fixture
+def db_session():
+    from app.database import SessionLocal
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+@pytest.fixture
 def client():
     return TestClient(app)

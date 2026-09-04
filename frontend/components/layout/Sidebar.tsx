@@ -23,7 +23,7 @@ interface SidebarProps {
 
 const NAV_ITEMS = [
   {
-    name: "Electrical Store",
+    name: "Electronics Store",
     href: "/store",
     icon: ShoppingBag,
     badge: "Shop",

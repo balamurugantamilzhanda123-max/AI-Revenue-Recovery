@@ -11,6 +11,7 @@ import {
   RecoveryStartResponse,
   Transaction,
 } from "../types/revive";
+import { FALLBACK_PRODUCTS } from "./fallbackProducts";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
@@ -237,23 +238,70 @@ export async function checkBackendHealth(): Promise<{ status: string }> {
 }
 
 // ==========================================
+// ==========================================
 // Electrical Store & Customer Checkout
 // ==========================================
 
 export interface ElectricalProduct {
   id: string;
+  productId?: string;
   name: string;
   category: string;
+  subcategory?: string;
   price: number;
+  discountPrice?: number;
   currency: string;
   stock: number;
   in_stock: boolean;
+  availability?: string;
   rating: number;
   reviews_count: number;
+  reviewCount?: number;
   badge?: string;
   image_url: string;
+  image?: string;
   description: string;
   specs?: Record<string, string>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CustomerProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  saved_address?: CustomerAddressData | null;
+}
+
+export interface CustomerAddressData {
+  full_name: string;
+  phone: string;
+  email?: string;
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  landmark?: string;
+}
+
+export interface CustomerOrderData {
+  order_id: string;
+  transaction_id: string;
+  product_name: string;
+  category: string;
+  image_url: string;
+  amount: number;
+  currency: string;
+  payment_method: string;
+  payment_status: string;
+  order_status: string;
+  recovery_status: string;
+  recovery_token: string;
+  created_at: string;
+  can_retry: boolean;
+  retry_link: string;
 }
 
 export async function fetchElectricalProducts(params?: {
@@ -264,11 +312,100 @@ export async function fetchElectricalProducts(params?: {
   if (params?.category) query.set("category", params.category);
   if (params?.search) query.set("search", params.search);
   const qs = query.toString();
-  return request<{ data: ElectricalProduct[]; count: number }>(`/api/checkout/products${qs ? `?${qs}` : ""}`);
+
+  try {
+    const res = await request<{ data: ElectricalProduct[]; count: number }>(`/api/checkout/products${qs ? `?${qs}` : ""}`);
+    if (res && res.data && res.data.length > 0) {
+      return res;
+    }
+  } catch {
+    // If backend is offline or starting up, use robust client fallback catalog
+  }
+
+  // Filter fallback catalog
+  let list = [...FALLBACK_PRODUCTS];
+  if (params?.category && params.category !== "All") {
+    list = list.filter((p) => p.category.toLowerCase() === params.category!.toLowerCase());
+  }
+  if (params?.search && params.search.trim()) {
+    const q = params.search.toLowerCase().trim();
+    list = list.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        (p.subcategory && p.subcategory.toLowerCase().includes(q))
+    );
+  }
+  return { data: list, count: list.length };
 }
 
 export async function fetchElectricalProductDetail(productId: string): Promise<{ data: ElectricalProduct }> {
-  return request<{ data: ElectricalProduct }>(`/api/checkout/products/${encodeURIComponent(productId)}`);
+  try {
+    const res = await request<{ data: ElectricalProduct }>(`/api/checkout/products/${encodeURIComponent(productId)}`);
+    if (res && res.data) return res;
+  } catch {
+    // fallback
+  }
+  const found = FALLBACK_PRODUCTS.find((p) => p.id === productId || p.productId === productId);
+  if (found) return { data: found };
+  return { data: FALLBACK_PRODUCTS[0] };
+}
+
+export async function customerRegister(payload: {
+  full_name: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirm_password: string;
+}): Promise<{ success: boolean; message: string; customer: CustomerProfile; token: string }> {
+  return request("/api/checkout/customer/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function customerLogin(payload: {
+  identifier: string;
+  password: string;
+}): Promise<{ success: boolean; message: string; customer: CustomerProfile; token: string }> {
+  return request("/api/checkout/customer/login", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchCustomerProfile(params?: {
+  email?: string;
+  phone?: string;
+}): Promise<{ customer: CustomerProfile }> {
+  const query = new URLSearchParams();
+  if (params?.email) query.set("email", params.email);
+  if (params?.phone) query.set("phone", params.phone);
+  const qs = query.toString();
+  return request<{ customer: CustomerProfile }>(`/api/checkout/customer/me${qs ? `?${qs}` : ""}`);
+}
+
+export async function saveCustomerAddress(
+  payload: CustomerAddressData & { customer_id?: string; email?: string }
+): Promise<{ success: boolean; message: string; address: CustomerAddressData }> {
+  return request("/api/checkout/customer/address", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchCustomerOrders(params?: {
+  email?: string;
+  phone?: string;
+  customer_id?: string;
+}): Promise<{ data: CustomerOrderData[]; count: number }> {
+  const query = new URLSearchParams();
+  if (params?.email) query.set("email", params.email);
+  if (params?.phone) query.set("phone", params.phone);
+  if (params?.customer_id) query.set("customer_id", params.customer_id);
+  const qs = query.toString();
+  return request<{ data: CustomerOrderData[]; count: number }>(`/api/checkout/customer/orders${qs ? `?${qs}` : ""}`);
 }
 
 export async function initiateCheckoutSession(payload: {
@@ -301,7 +438,16 @@ export async function processCustomerPayment(payload: {
     phone?: string;
     address?: string;
   };
-  simulation_scenario: "SUCCESS" | "NETWORK_ERROR" | "TIMEOUT" | "AUTH_FAILURE" | "DECLINE";
+  simulation_scenario:
+    | "SUCCESS"
+    | "PAYMENT_SUCCESS"
+    | "NETWORK_ERROR"
+    | "TIMEOUT"
+    | "PAYMENT_TIMEOUT"
+    | "AUTH_FAILURE"
+    | "AUTHENTICATION_FAILED"
+    | "DECLINE"
+    | "PAYMENT_FAILED";
 }): Promise<any> {
   return request("/api/checkout/process-payment", {
     method: "POST",
@@ -335,7 +481,7 @@ export async function retryCustomerPayment(payload: {
   transaction_id: string;
   order_id?: string;
   token?: string;
-  retry_outcome: "SUCCESS" | "FAILED";
+  retry_outcome: "SUCCESS" | "FAILED" | "RETRY_SUCCESS" | "RETRY_FAILED";
 }): Promise<any> {
   return request("/api/checkout/retry-payment", {
     method: "POST",

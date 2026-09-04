@@ -1,6 +1,7 @@
 import base64
 import datetime
 import logging
+import os
 import uuid
 from decimal import Decimal
 from typing import Any
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.transaction import NotificationRecord
+from app.services.audit_service import record_audit_event
 
 logger = logging.getLogger("reviveai.email")
 
@@ -22,11 +24,14 @@ except ImportError:
 
 class EmailService:
     def __init__(self) -> None:
-        self.api_key = settings.resend_api_key
-        self.from_email = settings.email_from or "VoltStore <orders@resend.dev>"
-        self.app_url = settings.app_url or "http://localhost:3000"
+        self._sync_config()
 
-        if _RESEND_AVAILABLE and self.api_key:
+    def _sync_config(self) -> None:
+        self.api_key = os.environ.get("RESEND_API_KEY") or settings.resend_api_key
+        self.from_email = os.environ.get("EMAIL_FROM") or settings.email_from or "VoltStore <orders@resend.dev>"
+        self.app_url = (os.environ.get("APP_URL") or settings.app_url or "http://localhost:3000").rstrip("/")
+
+        if _RESEND_AVAILABLE and self.api_key and resend:
             resend.api_key = self.api_key
 
     def _log_notification(
@@ -41,6 +46,8 @@ class EmailService:
         order_id: str | None = None,
         provider_message_id: str | None = None,
         failure_reason: str | None = None,
+        transaction_id: str | None = None,
+        recovery_case_id: str | None = None,
     ) -> None:
         if not db:
             return
@@ -57,16 +64,46 @@ class EmailService:
                 status=status,
                 provider_message_id=provider_message_id,
                 failure_reason=failure_reason,
-                sent_at=datetime.datetime.now(datetime.UTC) if status == "SENT" else None,
+                sent_at=datetime.datetime.now(datetime.timezone.utc) if status == "SENT" else None,
             )
             db.add(record)
-            db.commit()
+            db.flush()
+
+            # Record audit events for retry emails
+            if notification_type in {"PAYMENT_FAILED", "PAYMENT_FAILED_RETRY", "RECOVERY_LINK"}:
+                if status == "SENT":
+                    record_audit_event(
+                        db,
+                        event_type="RETRY_EMAIL_SENT",
+                        event_message=f"Payment failure retry email sent to {recipient} (Order: {order_id})",
+                        actor="reviveai-email-service",
+                        transaction_id=transaction_id,
+                        recovery_case_id=recovery_case_id,
+                        metadata={
+                            "recipient": recipient,
+                            "order_id": order_id,
+                            "provider_message_id": provider_message_id,
+                            "status": "SENT",
+                        },
+                    )
+                else:
+                    record_audit_event(
+                        db,
+                        event_type="RETRY_EMAIL_FAILED",
+                        event_message=f"Payment failure retry email delivery failed to {recipient}: {failure_reason}",
+                        actor="reviveai-email-service",
+                        transaction_id=transaction_id,
+                        recovery_case_id=recovery_case_id,
+                        metadata={
+                            "recipient": recipient,
+                            "order_id": order_id,
+                            "error": failure_reason,
+                            "status": "FAILED",
+                        },
+                    )
+            db.flush()
         except Exception as e:
-            logger.error(f"Failed to record notification log: {e}")
-            try:
-                db.rollback()
-            except Exception:
-                pass
+            logger.error(f"Failed to record notification log or audit: {e}")
 
     def _send_email_payload(
         self,
@@ -78,11 +115,15 @@ class EmailService:
         db: Session | None = None,
         customer_id: str | None = None,
         order_id: str | None = None,
+        transaction_id: str | None = None,
+        recovery_case_id: str | None = None,
         attachments: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """
-        Dispatches email via Resend if API key is present; otherwise logs safely in mock mode.
+        Dispatches email via Resend if RESEND_API_KEY is present; otherwise logs safely in mock test mode.
+        Never hardcodes keys.
         """
+        self._sync_config()
         logger.info(f"Dispatching [{notification_type}] to {to_email} | Subject: {subject}")
         provider_id = None
         status = "SENT"
@@ -90,6 +131,7 @@ class EmailService:
 
         if _RESEND_AVAILABLE and self.api_key and not self.api_key.startswith("re_placeholder"):
             try:
+                resend.api_key = self.api_key
                 params: dict[str, Any] = {
                     "from": self.from_email,
                     "to": [to_email],
@@ -108,9 +150,9 @@ class EmailService:
                 status = "FAILED"
                 failure_msg = str(e)
         else:
-            # Simulated / Local Test Mode
+            # Simulated / Local Test Mode when no Resend key is configured
             provider_id = f"mock_msg_{uuid.uuid4().hex[:12]}"
-            logger.info(f"[DEV TEST MODE] Email successfully simulated to {to_email} (MsgID: {provider_id})")
+            logger.info(f"[DEV TEST MODE] Email simulated to {to_email} (MsgID: {provider_id})")
 
         self._log_notification(
             db=db,
@@ -123,6 +165,8 @@ class EmailService:
             order_id=order_id,
             provider_message_id=provider_id,
             failure_reason=failure_msg,
+            transaction_id=transaction_id,
+            recovery_case_id=recovery_case_id,
         )
 
         return {
@@ -142,6 +186,7 @@ class EmailService:
         db: Session | None = None,
         customer_id: str | None = None,
     ) -> dict[str, Any]:
+        self._sync_config()
         subject = "Welcome to VoltStore"
         
         text = f"""Hi {customer_name},
@@ -154,6 +199,7 @@ Explore the store: {self.app_url}/store
 
 Thank you,
 The VoltStore Team
+Support: support@voltstore.in
 """
 
         html = f"""
@@ -176,7 +222,7 @@ The VoltStore Team
             </div>
 
             <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; color: #94a3b8; font-size: 12px; text-align: center;">
-                <p>© 2026 VoltStore. All rights reserved.</p>
+                <p>© 2026 VoltStore. Need help? Email support@voltstore.in</p>
             </div>
         </div>
         """
@@ -202,6 +248,7 @@ The VoltStore Team
         db: Session | None = None,
         customer_id: str | None = None,
     ) -> dict[str, Any]:
+        self._sync_config()
         time_str = login_time or datetime.datetime.now().strftime("%I:%M %p, %d %b %Y")
         subject = "New Login to Your VoltStore Account"
         
@@ -211,7 +258,7 @@ Your VoltStore account was successfully accessed.
 
 Time: {time_str}
 
-If this was you, no action is needed. If you did not authorize this login, please secure your account immediately.
+If this was you, no action is needed. If you did not authorize this login, please contact support@voltstore.in immediately.
 
 VoltStore Security Team
 """
@@ -223,7 +270,7 @@ VoltStore Security Team
                 Hi <b>{customer_name}</b>, your account was accessed on <b>{time_str}</b>.
             </p>
             <p style="color: #64748b; font-size: 13px;">
-                If this was not you, please contact support@voltstore.in immediately to lock your account.
+                If this was not you, please contact <a href="mailto:support@voltstore.in" style="color: #047857;">support@voltstore.in</a> immediately.
             </p>
         </div>
         """
@@ -239,7 +286,7 @@ VoltStore Security Team
         )
 
     # ==========================================
-    # 3. Order Confirmation & E-Bill Email
+    # 3. Order Confirmation & E-Bill / Invoice Email
     # ==========================================
     def send_order_confirmation(
         self,
@@ -248,7 +295,10 @@ VoltStore Security Team
         pdf_bytes: bytes | None = None,
         db: Session | None = None,
         customer_id: str | None = None,
+        transaction_id: str | None = None,
+        recovery_case_id: str | None = None,
     ) -> dict[str, Any]:
+        self._sync_config()
         order_id = order_data.get("order_id", "ORD-1001")
         customer_name = order_data.get("customer_name", "Valued Customer")
         product_name = order_data.get("product_name", "Electronics Item")
@@ -268,15 +318,16 @@ Order ID: {order_id}
 Product: {product_name}
 Quantity: {quantity}
 Amount Paid: ₹{amount:,.2f}
-Payment Status: PAID via Razorpay Standard Checkout
+Payment Status: PAID via Razorpay
 
 Delivery Address:
 {delivery_addr}
 
 Your official PDF tax invoice is attached to this email.
 
-Thank you for your purchase.
+Need support? Contact support@voltstore.in
 
+Thank you for shopping with VoltStore!
 The VoltStore Team
 """
 
@@ -313,12 +364,13 @@ The VoltStore Team
                 </div>
 
                 <p style="color: #475569; font-size: 13px;">
-                    📎 <b>Tax Invoice Attached:</b> Your PDF invoice <i>VoltStore-Invoice-{order_id}.pdf</i> is attached to this email. You can also view it in your <a href="{self.app_url}/store/orders" style="color: #047857; font-weight: 600;">Order History</a>.
+                    📎 <b>Tax Invoice Attached:</b> Your PDF invoice <i>VoltStore-Invoice-{order_id}.pdf</i> is attached. You can also view it in your <a href="{self.app_url}/store/orders" style="color: #047857; font-weight: 600;">Order History</a>.
                 </p>
             </div>
 
             <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; color: #94a3b8; font-size: 12px; text-align: center;">
                 <p>VoltStore • Autonomous Revenue Recovery Powered by ReviveAI</p>
+                <p>Support: <a href="mailto:support@voltstore.in" style="color: #64748b;">support@voltstore.in</a></p>
             </div>
         </div>
         """
@@ -340,11 +392,13 @@ The VoltStore Team
             db=db,
             customer_id=customer_id,
             order_id=order_id,
+            transaction_id=transaction_id,
+            recovery_case_id=recovery_case_id,
             attachments=attachments,
         )
 
     # ==========================================
-    # 4. Payment Failure & AI Recovery Link Email
+    # 4. Payment Failure & Real AI Recovery Retry Link Email
     # ==========================================
     def send_payment_failed_recovery(
         self,
@@ -354,29 +408,39 @@ The VoltStore Team
         failure_reason: str = "Bank / Network Error",
         db: Session | None = None,
         customer_id: str | None = None,
+        transaction_id: str | None = None,
+        recovery_case_id: str | None = None,
     ) -> dict[str, Any]:
+        self._sync_config()
         order_id = order_data.get("order_id", "ORD-1001")
-        customer_name = order_data.get("customer_name", "Customer")
+        customer_name = order_data.get("customer_name", "Valued Customer")
         product_name = order_data.get("product_name", "Your Order")
         amount = float(order_data.get("total_amount", order_data.get("amount", 0)))
 
-        subject = "Payment Failed — Complete Your VoltStore Order"
+        subject = f"Action Required: Complete Your VoltStore Order — {order_id}"
 
         text = f"""Hi {customer_name},
 
-Your payment for:
-{product_name}
+We noticed that your recent payment for order {order_id} could not be completed.
+
+Order Details:
+Product: {product_name}
 Amount: ₹{amount:,.2f}
+Reason: {failure_reason}
 
-could not be completed due to: {failure_reason}.
+Good news: Your cart items are safely reserved for you!
 
-Your order is reserved and ready. Please use the secure one-click payment link below to complete your order safely:
+Please click the secure 1-click retry payment link below to complete your checkout safely:
 
 {retry_url}
 
-If you have already paid, please ignore this email.
+Payment Methods Supported: UPI, Debit/Credit Cards, Netbanking via Razorpay.
 
+If you have already completed this payment or need help, please contact our support team at support@voltstore.in.
+
+Thank you,
 The VoltStore Team
+Powered by ReviveAI Revenue Recovery
 """
 
         html = f"""
@@ -384,32 +448,38 @@ The VoltStore Team
             <div style="text-align: center; padding-bottom: 20px; border-bottom: 1px solid #fee2e2;">
                 <span style="background: #fef2f2; color: #dc2626; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 20px; border: 1px solid #fecaca; text-transform: uppercase;">Payment Incomplete</span>
                 <h1 style="color: #0f172a; margin: 12px 0 4px 0; font-size: 20px;">Complete Your VoltStore Order</h1>
-                <p style="color: #64748b; font-size: 14px; margin: 0;">Order: <b>{order_id}</b></p>
+                <p style="color: #64748b; font-size: 14px; margin: 0;">Order Reference: <b>{order_id}</b></p>
             </div>
 
             <div style="padding: 20px 0;">
                 <p style="color: #334155; font-size: 15px;">Hi <b>{customer_name}</b>,</p>
                 <p style="color: #334155; font-size: 14px; line-height: 1.6;">
-                    We noticed your payment for <b>{product_name}</b> (₹{amount:,.2f}) could not be completed (<i>{failure_reason}</i>).
+                    We noticed your payment for <b>{product_name}</b> (<b>₹{amount:,.2f}</b>) could not be completed (<i>{failure_reason}</i>).
                 </p>
-                <p style="color: #334155; font-size: 14px; line-height: 1.6;">
-                    Don't worry — your cart items are reserved for you. You can securely finish your payment using your preferred payment method (UPI, Cards, Netbanking) using the secure link below:
-                </p>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin: 16px 0;">
+                    <p style="margin: 0; color: #047857; font-weight: 700; font-size: 13px;">
+                        ✓ Your items are safely reserved in stock.
+                    </p>
+                    <p style="margin: 4px 0 0 0; color: #475569; font-size: 12px;">
+                        Use your secure one-click link below to finish your payment with UPI, Debit/Credit Card, or Netbanking.
+                    </p>
+                </div>
 
                 <div style="text-align: center; margin: 28px 0;">
                     <a href="{retry_url}" style="background: #047857; color: #ffffff; padding: 14px 32px; text-decoration: none; font-weight: 700; border-radius: 8px; font-size: 15px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-                        Complete Payment Now →
+                        Retry Payment Now →
                     </a>
                 </div>
 
                 <p style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: center;">
-                    Link not clickable? Copy and paste this URL into your browser:<br/>
+                    If the button above does not work, copy and paste this link into your browser:<br/>
                     <a href="{retry_url}" style="color: #047857; word-break: break-all;">{retry_url}</a>
                 </p>
             </div>
 
             <div style="border-top: 1px solid #fee2e2; padding-top: 16px; color: #94a3b8; font-size: 12px; text-align: center;">
                 <p>VoltStore • Autonomous Revenue Recovery Powered by ReviveAI</p>
+                <p>Questions? Contact our 24/7 support at <a href="mailto:support@voltstore.in" style="color: #64748b;">support@voltstore.in</a></p>
             </div>
         </div>
         """
@@ -423,6 +493,8 @@ The VoltStore Team
             db=db,
             customer_id=customer_id,
             order_id=order_id,
+            transaction_id=transaction_id,
+            recovery_case_id=recovery_case_id,
         )
 
     # ==========================================
@@ -432,29 +504,37 @@ The VoltStore Team
         self,
         to_email: str,
         order_data: dict[str, Any],
-        case_data: dict[str, Any],
+        case_data: dict[str, Any] | None = None,
         db: Session | None = None,
         customer_id: str | None = None,
+        transaction_id: str | None = None,
+        recovery_case_id: str | None = None,
     ) -> dict[str, Any]:
+        self._sync_config()
         order_id = order_data.get("order_id", "ORD-1001")
         customer_name = order_data.get("customer_name", "Customer")
-        subject = f"Support Assistance for Your Order — {order_id}"
+        subject = f"Support Assistance Assigned — Order {order_id}"
 
         text = f"""Hi {customer_name},
 
-Our priority support associate has been assigned to assist you with order {order_id}.
+Our priority support specialist has been assigned to assist you with order {order_id}.
 
-We will ensure your checkout is completed smoothly without any repeated charges.
+To ensure your financial security, automated retry attempts have been paused. A support specialist will contact you to verify payment status and provide assisted checkout.
 
-VoltStore Priority Support
+Need urgent help? Reply to this email or contact support@voltstore.in.
+
+VoltStore Priority Customer Support
 """
 
         html = f"""
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
-            <h2 style="color: #0f172a; margin-top: 0;">VoltStore Priority Customer Support</h2>
+            <h2 style="color: #0f172a; margin-top: 0;">VoltStore Priority Support Assistance</h2>
             <p style="color: #334155; font-size: 14px;">Hi <b>{customer_name}</b>,</p>
             <p style="color: #334155; font-size: 14px; line-height: 1.5;">
-                We saw that you experienced difficulty completing payment for order <b>{order_id}</b>. A dedicated human associate has been assigned to help you resolve this issue immediately.
+                We saw that you experienced repeat difficulty completing payment for order <b>{order_id}</b>. A dedicated Human Support Specialist has been assigned to help you complete your order without any duplicate charges.
+            </p>
+            <p style="color: #64748b; font-size: 13px;">
+                Our specialist will contact you with alternative payment channels. You can also reach us at <a href="mailto:support@voltstore.in" style="color: #047857;">support@voltstore.in</a>.
             </p>
         </div>
         """
@@ -468,6 +548,8 @@ VoltStore Priority Support
             db=db,
             customer_id=customer_id,
             order_id=order_id,
+            transaction_id=transaction_id,
+            recovery_case_id=recovery_case_id,
         )
 
 

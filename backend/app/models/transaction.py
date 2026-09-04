@@ -616,3 +616,34 @@ class Invoice(Base):
     )
 
 
+class PaymentRetryToken(Base):
+    __tablename__ = "payment_retry_tokens"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=uuid_string)
+    token: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
+    transaction_id: Mapped[str] = mapped_column(
+        ForeignKey("transactions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    order_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("customers.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    recovery_case_id: Mapped[str | None] = mapped_column(
+        ForeignKey("recovery_cases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    is_used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+

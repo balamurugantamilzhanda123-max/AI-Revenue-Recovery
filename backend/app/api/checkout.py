@@ -10,6 +10,7 @@ from sqlalchemy import desc, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
+from app.config import settings
 from app.database import get_db
 from app.models import (
     ActionStatus,
@@ -20,7 +21,9 @@ from app.models import (
     CustomerStatus,
     EscalationCase,
     EscalationStatus,
+    Order,
     PaymentAttempt,
+    PaymentRetryToken,
     PaymentStatus,
     RecoveryAction,
     RecoveryCase,
@@ -32,6 +35,8 @@ from app.services.agent_service import _rule_based_diagnosis
 from app.services.audit_service import record_audit_event
 from app.services.decision_service import generate_recovery_decision
 from app.services.diagnosis_service import store_diagnosis
+from app.services.email_service import email_service
+from app.services.invoice_service import invoice_service
 from app.services.policy_service import validate_recovery_policy
 from app.services.product_service import (
     CATALOG_ITEMS,
@@ -41,6 +46,7 @@ from app.services.product_service import (
     get_product_by_id,
     list_products,
 )
+from app.services.retry_token_service import retry_token_service
 from app.services.risk_service import ensure_recovery_case
 from app.services.serializers import transaction_dict
 
@@ -697,6 +703,27 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
 
     # 3. DIRECT SUCCESS SCENARIO
     if scenario in {"SUCCESS", "PAYMENT_SUCCESS"}:
+        order_rec = Order(
+            id=order_id,
+            customer_id=customer_rec.id,
+            product_id=product["id"],
+            product_name=product["name"],
+            category=product.get("category", "Electronics"),
+            quantity=payload.quantity,
+            unit_price=Decimal(str(product["price"])),
+            subtotal=amount_dec,
+            total_amount=amount_dec,
+            currency=payload.currency,
+            status="CONFIRMED",
+            delivery_address={
+                "name": payload.customer.name,
+                "email": payload.customer.email,
+                "phone": payload.customer.phone,
+                "address": payload.customer.address,
+            },
+        )
+        db.add(order_rec)
+
         tx = Transaction(
             transaction_id=transaction_id,
             customer_id=customer_rec.id,
@@ -714,6 +741,7 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
         )
         db.add(tx)
         db.flush()
+        order_rec.transaction_id = tx.id
 
         db.add(
             PaymentAttempt(
@@ -753,6 +781,37 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
                 "amount": float(amount_dec),
             },
         )
+
+        # Generate PDF invoice and send confirmation email
+        invoice_info = {
+            "invoice_number": f"INV-{uuid.uuid4().hex[:8].upper()}",
+            "order_id": order_id,
+            "date": datetime.datetime.now().strftime("%d %b %Y, %I:%M %p"),
+            "customer_name": payload.customer.name,
+            "customer_email": payload.customer.email,
+            "customer_phone": payload.customer.phone,
+            "shipping_address": payload.customer.address,
+            "payment_reference": transaction_id,
+            "razorpay_order_id": order_id,
+            "product_name": product["name"],
+            "category": product.get("category", "Electronics"),
+            "quantity": payload.quantity,
+            "unit_price": float(product["price"]),
+            "subtotal": float(amount_dec),
+            "total_amount": float(amount_dec),
+        }
+        pdf_bytes = invoice_service.generate_invoice_pdf(invoice_info)
+
+        if payload.customer.email:
+            email_service.send_order_confirmation(
+                to_email=payload.customer.email.strip().lower(),
+                order_data=invoice_info,
+                pdf_bytes=pdf_bytes,
+                db=db,
+                customer_id=customer_rec.id,
+                transaction_id=tx.id,
+            )
+
         db.commit()
 
         return {
@@ -817,6 +876,29 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
         scenario, failure_mapping["NETWORK_ERROR"]
     )
 
+    # 1. Create Order record
+    order_rec = Order(
+        id=order_id,
+        customer_id=customer_rec.id,
+        product_id=product["id"],
+        product_name=product["name"],
+        category=product.get("category", "Electronics"),
+        quantity=payload.quantity,
+        unit_price=Decimal(str(product["price"])),
+        subtotal=amount_dec,
+        total_amount=amount_dec,
+        currency=payload.currency,
+        status="PAYMENT_FAILED",
+        delivery_address={
+            "name": payload.customer.name,
+            "email": payload.customer.email,
+            "phone": payload.customer.phone,
+            "address": payload.customer.address,
+        },
+    )
+    db.add(order_rec)
+
+    # 2. Create Transaction record
     tx = Transaction(
         transaction_id=transaction_id,
         customer_id=customer_rec.id,
@@ -830,10 +912,10 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
         retry_count=0,
         recovery_status=RecoveryStatus.OPEN,
         recovered_amount=Decimal("0.00"),
-        customer_response=recovery_token,
     )
     db.add(tx)
     db.flush()
+    order_rec.transaction_id = tx.id
 
     db.add(
         PaymentAttempt(
@@ -845,13 +927,10 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
     )
 
     # Event: PAYMENT_FAILED / NETWORK_ERROR
-    is_network = "network" in scenario.lower() or "network" in reason.lower()
-    event_type = "NETWORK_ERROR" if is_network else "PAYMENT_FAILED"
-
     record_audit_event(
         db,
-        event_type=event_type,
-        event_message=f"{event_type.replace('_', ' ').title()} for Order {order_id}: {reason}",
+        event_type="PAYMENT_FAILED",
+        event_message=f"Payment Failed for Order {order_id}: {reason}",
         actor="payment-gateway",
         transaction_id=tx.id,
         metadata={
@@ -897,7 +976,27 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
 
     record_audit_event(
         db,
-        event_type="POLICY_VALIDATED",
+        event_type="AI_RECOVERY_STARTED",
+        event_message="ReviveAI autonomous recovery workflow started",
+        actor="reviveai-agent",
+        transaction_id=tx.id,
+        recovery_case_id=recovery_case.id if recovery_case else None,
+        metadata={"diagnosis": diag_dict, "decision": decision_data},
+    )
+
+    record_audit_event(
+        db,
+        event_type="RECOVERY_DECISION_CREATED",
+        event_message=f"Recovery strategy selected: {decision_data.get('decision', 'controlled_retry')}",
+        actor="reviveai-agent",
+        transaction_id=tx.id,
+        recovery_case_id=recovery_case.id if recovery_case else None,
+        metadata=decision_data,
+    )
+
+    record_audit_event(
+        db,
+        event_type="POLICY_VALIDATION_COMPLETED",
         event_message=f"Safety policy validation: {policy_res.get('result', 'APPROVED')}",
         actor="reviveai-safety-engine",
         transaction_id=tx.id,
@@ -910,50 +1009,46 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
         },
     )
 
-    # 8. AUTOMATIC CUSTOMER RECOVERY MESSAGE (Core Requirement)
-    recovery_link = f"/payment/retry/{recovery_token}"
-    auto_msg = (
-        f"Hi {payload.customer.name},\n\n"
-        f"Your payment for {product['name']} could not be completed due to a temporary payment issue.\n\n"
-        f"Your order is still available.\n\n"
-        f"Please complete your payment using the secure payment link below:\n\n"
-        f"{recovery_link}\n\n"
-        f"[Complete Payment]"
+    # 8. GENERATE SECURE CRYPTOGRAPHIC RETRY TOKEN (24h Expiry, Single-Use)
+    token_record, recovery_link = retry_token_service.create_secure_retry_token(
+        db,
+        transaction=tx,
+        customer=customer_rec,
+        order=order_rec,
+        recovery_case=recovery_case,
+        expiry_hours=24,
     )
 
-    record_audit_event(
-        db,
-        event_type="CUSTOMER_MESSAGE_SENT",
-        event_message=f"Automatic customer recovery message dispatched to {payload.customer.name}",
-        actor="reviveai-agent",
-        transaction_id=tx.id,
-        recovery_case_id=recovery_case.id if recovery_case else None,
-        metadata={
-            "recipient": payload.customer.email,
+    # 9. DISPATCH REAL TRANSACTIONAL RECOVERY EMAIL VIA RESEND
+    email_result = email_service.send_payment_failed_recovery(
+        to_email=payload.customer.email.strip().lower(),
+        order_data={
+            "order_id": order_id,
             "customer_name": payload.customer.name,
-            "message": auto_msg,
-            "recovery_token": recovery_token,
+            "product_name": product["name"],
+            "total_amount": float(amount_dec),
         },
-    )
-
-    record_audit_event(
-        db,
-        event_type="PAYMENT_LINK_GENERATED",
-        event_message=f"Dynamic payment link created for Order {order_id}",
-        actor="reviveai-executor",
+        retry_url=recovery_link,
+        failure_reason=reason,
+        db=db,
+        customer_id=customer_rec.id,
         transaction_id=tx.id,
         recovery_case_id=recovery_case.id if recovery_case else None,
-        metadata={
-            "link": recovery_link,
-            "token": recovery_token,
-            "expires_in_hours": 24,
-        },
     )
 
     db.commit()
 
     # Risk calculation for seller / UI insight
     risk_info = calculate_risk_level(float(amount_dec), scenario, 0)
+
+    auto_msg = (
+        f"Hi {payload.customer.name},\n\n"
+        f"Your payment for {product['name']} could not be completed due to a temporary payment issue ({reason}).\n\n"
+        f"Your order is still available.\n\n"
+        f"Please complete your payment using the secure payment link below:\n\n"
+        f"{recovery_link}\n\n"
+        f"[Complete Payment]"
+    )
 
     # Customer-safe response
     return {
@@ -967,9 +1062,11 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
         "amount": float(amount_dec),
         "currency": payload.currency,
         "retry_available": True,
-        "recovery_token": recovery_token,
+        "recovery_token": token_record.token,
         "payment_link": recovery_link,
         "automated_message_preview": auto_msg,
+        "email_dispatched": email_result.get("success", False),
+        "email_status": email_result.get("status", "SENT"),
         "risk_level": risk_info["risk_level"],
     }
 
@@ -977,27 +1074,30 @@ def process_checkout_payment(payload: ProcessPaymentRequest, db: Session = Depen
 @router.get("/recover/{token}")
 def get_recovery_session(token: str, db: Session = Depends(get_db)):
     """
-    Landing page data when customer clicks the payment link from their recovery message.
+    Landing page data when customer clicks the payment link from their recovery email.
+    Validates token presence, expiration, single-use check, and payment status.
     Sanitized customer response: ONLY shows Order, Product, Amount, and status.
-    NEVER exposes internal seller confidential scores or raw AI prompt chains.
+    NEVER exposes internal seller confidential scores, API keys, or raw prompt chains.
     """
-    tx = (
-        db.query(Transaction)
-        .filter(
-            (Transaction.customer_response == token)
-            | (Transaction.transaction_id == token)
-            | (Transaction.order_id == token)
-        )
-        .first()
-    )
+    is_valid, reason_code, token_rec, tx = retry_token_service.validate_retry_token(db, token)
 
-    if not tx:
-        raise HTTPException(status_code=404, detail="Payment link is invalid or expired.")
+    if reason_code == "NOT_FOUND" or not tx:
+        raise HTTPException(status_code=404, detail="Payment recovery link is invalid or not found.")
+
+    if reason_code == "EXPIRED":
+        raise HTTPException(status_code=410, detail="This payment recovery link has expired (24-hour limit).")
 
     # Match product
     matching_prod = next(
         (p for p in CATALOG_ITEMS if abs(float(p["price"]) - float(tx.amount)) < 5.0),
         CATALOG_ITEMS[0],
+    )
+
+    already_paid = tx.status == PaymentStatus.SUCCESS or reason_code == "ALREADY_PAID"
+    already_used = token_rec.is_used if token_rec else (tx.retry_count >= 1)
+    is_escalated = (
+        tx.escalation_status in {EscalationStatus.OPEN, EscalationStatus.IN_REVIEW}
+        or tx.recovery_status == RecoveryStatus.ESCALATED
     )
 
     return {
@@ -1017,9 +1117,10 @@ def get_recovery_session(token: str, db: Session = Depends(get_db)):
             "price": float(matching_prod["price"]),
         },
         "customer_name": tx.customer.name if tx.customer else "Valued Customer",
-        "retry_allowed": tx.retry_count < 1 and tx.status != PaymentStatus.SUCCESS,
-        "already_paid": tx.status == PaymentStatus.SUCCESS,
-        "escalated_to_support": tx.escalation_status in {EscalationStatus.OPEN, EscalationStatus.IN_REVIEW} or tx.retry_count >= 1,
+        "retry_allowed": (not already_paid) and (not already_used) and (not is_escalated) and tx.retry_count < 1,
+        "already_paid": already_paid,
+        "already_used": already_used,
+        "escalated_to_support": is_escalated,
     }
 
 
@@ -1028,21 +1129,28 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
     """
     Handles Customer Retry directly from the secure payment recovery page.
     Enforces the single-retry safety policy.
-    - If Attempt 2 succeeds -> PAYMENT SUCCESS, Order confirmed, Revenue Recovered. Stops recovery.
+    - If Attempt 2 succeeds -> PAYMENT SUCCESS, Order confirmed, Revenue Recovered, PDF invoice generated, confirmation email sent. Stops recovery.
     - If Attempt 2 fails AGAIN -> Stops automated recovery, forwards order to HUMAN ASSOCIATE AGENT queue!
     """
-    tx = (
-        db.query(Transaction)
-        .filter(
-            (Transaction.transaction_id == payload.transaction_id)
-            | (Transaction.order_id == payload.order_id)
-            | (Transaction.customer_response == payload.token)
+    search_token = payload.token or payload.transaction_id
+    is_valid, reason_code, token_rec, tx = retry_token_service.validate_retry_token(db, search_token)
+
+    if not tx:
+        # Fallback query
+        tx = (
+            db.query(Transaction)
+            .filter(
+                (Transaction.transaction_id == payload.transaction_id)
+                | (Transaction.order_id == payload.order_id)
+            )
+            .first()
         )
-        .first()
-    )
 
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found for retry")
+
+    if reason_code == "EXPIRED":
+        raise HTTPException(status_code=410, detail="This payment retry link has expired.")
 
     recovery_case = (
         db.query(RecoveryCase)
@@ -1054,7 +1162,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
     # 1. Log CUSTOMER_RETRY audit event
     record_audit_event(
         db,
-        event_type="PAYMENT_RETRY_STARTED",
+        event_type="CUSTOMER_RETRY_STARTED",
         event_message=f"Customer initiated payment retry for Order {tx.order_id}",
         actor="customer",
         transaction_id=tx.id,
@@ -1078,7 +1186,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
             "message": "Payment has already been completed successfully.",
         }
 
-    # 3. Policy Guardrail Check: If already attempted once and failed again -> FORWARD TO HUMAN ASSOCIATE
+    # 3. Policy Guardrail Check: If already attempted once or retry fails -> FORWARD TO HUMAN ASSOCIATE
     retry_outcome = (payload.retry_outcome or "SUCCESS").upper()
 
     if tx.retry_count >= 1 or retry_outcome in {"FAILED", "RETRY_FAILED"}:
@@ -1087,7 +1195,11 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
         tx.retry_count += 1
         tx.recovery_status = RecoveryStatus.ESCALATED
         tx.escalation_status = EscalationStatus.OPEN
-        tx.gateway_response = "Payment retry failed on second attempt (Sandbox). Auto-recovery limit reached."
+        tx.gateway_response = "Payment retry failed on second attempt. Auto-recovery limit reached."
+
+        # Mark single-use token consumed
+        if payload.token:
+            retry_token_service.mark_token_used(db, payload.token)
 
         if recovery_case:
             recovery_case.recovery_status = RecoveryStatus.ESCALATED
@@ -1099,7 +1211,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
                 transaction_id=tx.id,
                 attempt_number=tx.retry_count + 1,
                 status=PaymentStatus.FAILED,
-                gateway_response="Second payment attempt failed (Sandbox)",
+                gateway_response="Second payment attempt failed",
             )
         )
 
@@ -1117,7 +1229,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
                 reason="Customer payment failed twice. Automatic recovery limit reached.",
                 priority=priority,
                 status=EscalationStatus.OPEN,
-                ai_recommendation="Contact customer directly, verify issuer switch or offer assisted payment link.",
+                ai_recommendation="Contact customer directly, verify payment gateway status, or offer assisted alternative channel.",
                 action_history=[
                     {
                         "action": "ESCALATED_FROM_RETRY_FAILURE",
@@ -1127,6 +1239,16 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
                 ],
             )
             db.add(esc)
+
+        record_audit_event(
+            db,
+            event_type="RETRY_PAYMENT_FAILED",
+            event_message=f"Payment retry failed for Order {tx.order_id} (Attempt {tx.retry_count})",
+            actor="payment-gateway",
+            transaction_id=tx.id,
+            recovery_case_id=recovery_case.id if recovery_case else None,
+            metadata={"attempt_number": tx.retry_count, "reason": "Declined by gateway"},
+        )
 
         record_audit_event(
             db,
@@ -1140,7 +1262,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
 
         record_audit_event(
             db,
-            event_type="HUMAN_ESCALATION",
+            event_type="HUMAN_ESCALATION_CREATED",
             event_message=f"Order {tx.order_id} forwarded to Human Associate Agent workspace",
             actor="reviveai-agent",
             transaction_id=tx.id,
@@ -1158,6 +1280,21 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
             metadata={"stop_reason": "MAX_RETRIES_EXCEEDED", "escalated_to": "HUMAN_ASSOCIATE"},
         )
 
+        # Send Human Escalation notification email to customer
+        cust_email = tx.customer.email if tx.customer else None
+        if cust_email:
+            email_service.send_human_escalation_notification(
+                to_email=cust_email,
+                order_data={
+                    "order_id": tx.order_id,
+                    "customer_name": tx.customer.name if tx.customer else "Customer",
+                },
+                db=db,
+                customer_id=tx.customer_id,
+                transaction_id=tx.id,
+                recovery_case_id=recovery_case.id if recovery_case else None,
+            )
+
         db.commit()
 
         return {
@@ -1171,13 +1308,22 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
             "retry_available": False,
         }
 
-    # 4. PRIMARY DEMO SCENARIO: Customer Retry Succeeds!
+    # 4. PRIMARY SCENARIO: Customer Retry Succeeds!
     tx.retry_count += 1
     tx.status = PaymentStatus.SUCCESS
     tx.recovery_status = RecoveryStatus.RECOVERED
     tx.recovered_amount = tx.amount
     tx.failure_reason = None
     tx.gateway_response = "Payment captured successfully on customer retry (Sandbox)"
+
+    # Mark single-use token consumed
+    if payload.token:
+        retry_token_service.mark_token_used(db, payload.token)
+
+    # Update Order status if present
+    order_rec = db.query(Order).filter(Order.id == tx.order_id).first()
+    if order_rec:
+        order_rec.status = "CONFIRMED"
 
     if recovery_case:
         recovery_case.recovery_status = RecoveryStatus.RECOVERED
@@ -1190,7 +1336,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
             transaction_id=tx.id,
             attempt_number=tx.retry_count + 1,
             status=PaymentStatus.SUCCESS,
-            gateway_response="Customer retry payment captured (Sandbox)",
+            gateway_response="Customer retry payment captured",
         )
     )
 
@@ -1205,7 +1351,7 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
     # Log Success & Revenue Recovered Lifecycle Events
     record_audit_event(
         db,
-        event_type="PAYMENT_SUCCESS",
+        event_type="RETRY_PAYMENT_SUCCESS",
         event_message=f"Payment captured successfully on retry for Order {tx.order_id}",
         actor="payment-gateway",
         transaction_id=tx.id,
@@ -1251,6 +1397,41 @@ def retry_checkout_payment(payload: RetryPaymentRequest, db: Session = Depends(g
         recovery_case_id=recovery_case.id if recovery_case else None,
         metadata={"stop_reason": "PAYMENT_SUCCESS", "recovery_status": "RECOVERED"},
     )
+
+    # Generate PDF Tax Invoice
+    cust = tx.customer
+    cust_name = cust.name if cust else "Valued Customer"
+    cust_email = cust.email if cust else "customer@voltstore.in"
+
+    invoice_data = {
+        "invoice_number": f"INV-{uuid.uuid4().hex[:8].upper()}",
+        "order_id": tx.order_id,
+        "date": datetime.datetime.now().strftime("%d %b %Y, %I:%M %p"),
+        "customer_name": cust_name,
+        "customer_email": cust_email,
+        "shipping_address": "Delivery Address on File",
+        "payment_reference": tx.transaction_id,
+        "razorpay_order_id": tx.order_id,
+        "product_name": matching_prod["name"] if matching_prod else "VoltStore Item",
+        "category": matching_prod.get("category", "Electronics") if matching_prod else "Electronics",
+        "quantity": 1,
+        "unit_price": float(tx.amount),
+        "subtotal": float(tx.amount),
+        "total_amount": float(tx.amount),
+    }
+    pdf_bytes = invoice_service.generate_invoice_pdf(invoice_data)
+
+    # Send Order Confirmation Email + PDF invoice
+    if cust_email:
+        email_service.send_order_confirmation(
+            to_email=cust_email,
+            order_data=invoice_data,
+            pdf_bytes=pdf_bytes,
+            db=db,
+            customer_id=tx.customer_id,
+            transaction_id=tx.id,
+            recovery_case_id=recovery_case.id if recovery_case else None,
+        )
 
     db.commit()
 

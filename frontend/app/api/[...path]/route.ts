@@ -307,8 +307,8 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     return NextResponse.json({
       order_id: "ORD-REC-" + token.substring(0, 6).toUpperCase(),
       transaction_id: "TXN-REC-" + token.substring(0, 6).toUpperCase(),
-      product_name: "ProBook Ultra Slim 15.6\" Business Laptop",
-      category: "Laptops & Computers",
+      token: token,
+      status: "FAILED",
       amount: 65999,
       discounted_amount: 63999,
       currency: "INR",
@@ -316,12 +316,25 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       failure_reason: "BANK_NETWORK_TIMEOUT",
       is_network_error: true,
       recovery_status: "IN_PROGRESS",
-      attempts_left: 3,
+      attempts_left: 1,
+      customer_name: "VALUED CUSTOMER",
       customer: {
         name: "VALUED CUSTOMER",
         email: "customer@voltstore.in",
         phone: "9876543210",
       },
+      product: {
+        id: "prod_laptop_biz_01",
+        name: "ProBook Ultra Slim 15.6\" Business Laptop",
+        category: "Laptops & Computers",
+        image_url: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80",
+        price: 65999,
+      },
+      product_name: "ProBook Ultra Slim 15.6\" Business Laptop",
+      already_paid: false,
+      already_used: false,
+      escalated_to_support: false,
+      retry_allowed: true,
     });
   }
 
@@ -337,11 +350,21 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       body.retry_outcome === "SUCCESS" || body.retry_outcome === "RETRY_SUCCESS";
     return NextResponse.json({
       success: isSuccess,
+      status: isSuccess ? "SUCCESS" : "ESCALATED",
       payment_status: isSuccess ? "SUCCESS" : "FAILED",
       recovery_status: isSuccess ? "RECOVERED" : "RETRY_FAILED",
+      order_status: isSuccess ? "CONFIRMED" : "ESCALATED_TO_SUPPORT",
+      escalated_to_human: !isSuccess,
+      escalated_to_support: !isSuccess,
+      already_paid: isSuccess,
+      order_id: body.order_id || "ORD-REC-DEMO",
+      transaction_id: body.transaction_id || "TXN-REC-DEMO",
+      recovered_amount: isSuccess ? 65999 : 0,
+      amount: 65999,
+      currency: "INR",
       message: isSuccess
         ? "Autonomous recovery successful! Payment confirmed."
-        : "Payment retry was not successful. Human support team notified.",
+        : "Payment retry was not successful. Case transferred to Human Associate.",
     });
   }
 

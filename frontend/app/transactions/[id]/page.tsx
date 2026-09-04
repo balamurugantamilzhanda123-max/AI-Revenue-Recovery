@@ -14,6 +14,7 @@ import {
   diagnoseTransaction,
   decideRecovery,
   startRecoveryWorkflow,
+  downloadTransactionPdf,
 } from "../../../lib/api";
 import {
   Transaction,
@@ -33,6 +34,7 @@ import {
   User,
   CreditCard,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -45,6 +47,7 @@ export default function TransactionDetailPage() {
   const [auditEvents, setAuditEvents] = useState<AuditLogEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingCert, setDownloadingCert] = useState(false);
 
   // AI & Action States
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
@@ -53,6 +56,17 @@ export default function TransactionDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+
+  const handleDownloadCertificate = async () => {
+    setDownloadingCert(true);
+    try {
+      await downloadTransactionPdf(transactionId);
+    } catch (err: any) {
+      alert(`Certificate download failed: ${err.message}`);
+    } finally {
+      setDownloadingCert(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -216,8 +230,17 @@ export default function TransactionDetailPage() {
                 </p>
               </div>
 
-              {/* Primary Action Button */}
-              <div className="flex items-center gap-3">
+              {/* Primary Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  onClick={handleDownloadCertificate}
+                  disabled={downloadingCert}
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-100 font-bold font-mono text-xs shadow-md transition-all flex items-center gap-2 disabled:opacity-50 active:scale-95 border border-slate-700"
+                >
+                  <FileText className={`w-4 h-4 ${downloadingCert ? "animate-spin text-emerald-400" : "text-emerald-400"}`} />
+                  <span>{downloadingCert ? "Generating Certificate..." : "Download Certificate (PDF)"}</span>
+                </button>
+
                 {transaction.status === "FAILED" && transaction.recovery_status !== "RECOVERED" && (
                   <>
                     {!diagnosis ? (

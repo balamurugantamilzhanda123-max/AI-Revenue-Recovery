@@ -335,141 +335,6 @@ export async function resetDashboard(): Promise<{
 }
 
 // ==========================================
-// Reports & Document Downloads
-// ==========================================
-
-export interface ReportSummary {
-  total_orders: number;
-  successful_payments: number;
-  failed_payments: number;
-  abandoned_payments: number;
-  revenue_at_risk: number;
-  ai_recovered: number;
-  human_recovered: number;
-  total_recovered: number;
-  recovery_rate: number;
-}
-
-export interface FailureAnalysis {
-  network_errors: number;
-  payment_timeouts: number;
-  authentication_failures: number;
-  abandonments: number;
-  other_failures: number;
-}
-
-export interface RecoveryAnalysis {
-  ai_recovery_cases: number;
-  human_recovery_cases: number;
-  high_risk_cases: number;
-  unresolved_cases: number;
-}
-
-export interface ReportTransactionItem {
-  transaction_id: string;
-  order_id: string;
-  amount: number;
-  currency: string;
-  status: string;
-  failure_type: string;
-  diagnosis: string;
-  recovery_action: string;
-  recovery_method: string;
-  recovery_status: string;
-  recovered_amount?: number;
-  created_date: string;
-  updated_date?: string;
-}
-
-export interface ReportData {
-  summary: ReportSummary;
-  failure_analysis: FailureAnalysis;
-  recovery_analysis: RecoveryAnalysis;
-  executive_findings: string[];
-  transactions: ReportTransactionItem[];
-  generated_at: string;
-  filters?: Record<string, any>;
-}
-
-export interface ReportFilters {
-  date_from?: string;
-  date_to?: string;
-  status?: string;
-  failure_type?: string;
-  recovery_method?: string;
-}
-
-export async function fetchReportData(filters?: ReportFilters): Promise<ReportData> {
-  const query = new URLSearchParams();
-  if (filters?.date_from) query.set("date_from", filters.date_from);
-  if (filters?.date_to) query.set("date_to", filters.date_to);
-  if (filters?.status) query.set("status", filters.status);
-  if (filters?.failure_type) query.set("failure_type", filters.failure_type);
-  if (filters?.recovery_method) query.set("recovery_method", filters.recovery_method);
-
-  const queryString = query.toString();
-  return request<ReportData>(`/api/reports${queryString ? `?${queryString}` : ""}`);
-}
-
-export async function downloadReportPdf(filters?: ReportFilters): Promise<void> {
-  const base = getApiBase();
-  const query = new URLSearchParams();
-  if (filters?.date_from) query.set("date_from", filters.date_from);
-  if (filters?.date_to) query.set("date_to", filters.date_to);
-  if (filters?.status) query.set("status", filters.status);
-  if (filters?.failure_type) query.set("failure_type", filters.failure_type);
-  if (filters?.recovery_method) query.set("recovery_method", filters.recovery_method);
-
-  const queryString = query.toString();
-  const url = `${base}/api/reports/pdf${queryString ? `?${queryString}` : ""}`;
-
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error(`Failed to download PDF report (${res.status} ${res.statusText})`);
-  }
-
-  const blob = await res.blob();
-  const downloadUrl = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  const curDate = new Date().toISOString().split("T")[0];
-  a.href = downloadUrl;
-  a.download = `ReviveAI_Revenue_Recovery_Report_${curDate}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(downloadUrl);
-  document.body.removeChild(a);
-}
-
-export async function downloadReportExcel(filters?: ReportFilters): Promise<void> {
-  const base = getApiBase();
-  const query = new URLSearchParams();
-  if (filters?.date_from) query.set("date_from", filters.date_from);
-  if (filters?.date_to) query.set("date_to", filters.date_to);
-  if (filters?.status) query.set("status", filters.status);
-  if (filters?.failure_type) query.set("failure_type", filters.failure_type);
-  if (filters?.recovery_method) query.set("recovery_method", filters.recovery_method);
-
-  const queryString = query.toString();
-  const url = `${base}/api/reports/excel${queryString ? `?${queryString}` : ""}`;
-
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error(`Failed to download Excel report (${res.status} ${res.statusText})`);
-  }
-
-  const blob = await res.blob();
-  const downloadUrl = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  const curDate = new Date().toISOString().split("T")[0];
-  a.href = downloadUrl;
-  a.download = `ReviveAI_Revenue_Recovery_Report_${curDate}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(downloadUrl);
-  document.body.removeChild(a);
-}
-
-// ==========================================
 // Demo Endpoints
 // ==========================================
 
@@ -1170,4 +1035,214 @@ export async function generateProductImage(
     body: JSON.stringify({ product_id: productId, prompt_override: promptOverride }),
   });
 }
+
+// ==========================================
+// Reporting & Analytics Exports
+// ==========================================
+
+export interface ReportFilters {
+  date_from?: string;
+  date_to?: string;
+  status?: string;
+  failure_type?: string;
+  recovery_method?: string;
+}
+
+export interface ReportData {
+  summary: {
+    total_orders: number;
+    successful_payments: number;
+    failed_payments: number;
+    pending_payments?: number;
+    abandoned_payments: number;
+    revenue_at_risk: number;
+    ai_recovered: number;
+    human_recovered: number;
+    total_recovered: number;
+    recovery_rate: number;
+    unresolved_revenue?: number;
+    high_risk_cases?: number;
+  };
+  failure_analysis: {
+    network_errors: number;
+    payment_timeouts: number;
+    authentication_failures: number;
+    abandonments: number;
+    other_failures: number;
+    breakdown_table?: Array<{
+      failure_type: string;
+      cases: number;
+      revenue_at_risk: number;
+      recovered: number;
+      unresolved: number;
+      recovery_rate: number;
+    }>;
+  };
+  recovery_analysis: {
+    ai_recovery_cases: number;
+    human_recovery_cases: number;
+    high_risk_cases: number;
+    unresolved_cases: number;
+    unresolved_revenue?: number;
+  };
+  executive_findings: string[];
+  recommendations?: string[];
+  transactions: Array<{
+    transaction_id: string;
+    order_id: string;
+    customer_name?: string;
+    customer_email?: string;
+    amount: number;
+    currency: string;
+    status: string;
+    failure_type: string;
+    risk_level?: string;
+    diagnosis: string;
+    recovery_action: string;
+    recovery_method: string;
+    recovery_status: string;
+    recovered_amount: number;
+    created_date?: string;
+    updated_date?: string;
+  }>;
+  audit_logs?: Array<{
+    timestamp: string;
+    actor: string;
+    action: string;
+    description: string;
+    metadata?: string;
+  }>;
+  generated_at: string;
+  filters?: ReportFilters;
+}
+
+export async function fetchReportData(filters?: ReportFilters): Promise<ReportData> {
+  const query = new URLSearchParams();
+  if (filters?.date_from) query.set("date_from", filters.date_from);
+  if (filters?.date_to) query.set("date_to", filters.date_to);
+  if (filters?.status && filters.status !== "ALL") query.set("status", filters.status);
+  if (filters?.failure_type && filters.failure_type !== "ALL") query.set("failure_type", filters.failure_type);
+  if (filters?.recovery_method && filters.recovery_method !== "ALL") query.set("recovery_method", filters.recovery_method);
+
+  const qs = query.toString();
+  return request<ReportData>(`/api/reports${qs ? `?${qs}` : ""}`);
+}
+
+function getAuthToken(): string | null {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("reviveai_token") || localStorage.getItem("auth_token") || null;
+  }
+  return null;
+}
+
+export async function fetchReportPdfBlob(filters?: ReportFilters): Promise<Blob> {
+  const query = new URLSearchParams();
+  if (filters?.date_from) query.set("date_from", filters.date_from);
+  if (filters?.date_to) query.set("date_to", filters.date_to);
+  if (filters?.status && filters.status !== "ALL") query.set("status", filters.status);
+  if (filters?.failure_type && filters.failure_type !== "ALL") query.set("failure_type", filters.failure_type);
+  if (filters?.recovery_method && filters.recovery_method !== "ALL") query.set("recovery_method", filters.recovery_method);
+
+  const qs = query.toString();
+  const base = getApiBase();
+  const token = getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${base}/api/reports/pdf${qs ? `?${qs}` : ""}`, {
+    method: "GET",
+    headers,
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to generate PDF report (HTTP ${res.status})`);
+  }
+  return await res.blob();
+}
+
+export async function downloadReportPdf(filters?: ReportFilters): Promise<void> {
+  const blob = await fetchReportPdfBlob(filters);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const filename = `ReviveAI_Revenue_Recovery_Report_${year}-${month}-${day}_${hours}-${minutes}.pdf`;
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+export async function downloadReportExcel(filters?: ReportFilters): Promise<void> {
+  const query = new URLSearchParams();
+  if (filters?.date_from) query.set("date_from", filters.date_from);
+  if (filters?.date_to) query.set("date_to", filters.date_to);
+  if (filters?.status && filters.status !== "ALL") query.set("status", filters.status);
+  if (filters?.failure_type && filters.failure_type !== "ALL") query.set("failure_type", filters.failure_type);
+  if (filters?.recovery_method && filters.recovery_method !== "ALL") query.set("recovery_method", filters.recovery_method);
+
+  const qs = query.toString();
+  const base = getApiBase();
+  const token = getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${base}/api/reports/excel${qs ? `?${qs}` : ""}`, {
+    method: "GET",
+    headers,
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to generate Excel report (HTTP ${res.status})`);
+  }
+  const blob = await res.blob();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const filename = `ReviveAI_Revenue_Recovery_Report_${year}-${month}-${day}_${hours}-${minutes}.xlsx`;
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+export async function downloadTransactionPdf(transactionId: string): Promise<void> {
+  const base = getApiBase();
+  const token = getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${base}/api/transactions/${encodeURIComponent(transactionId)}/pdf`, {
+    method: "GET",
+    headers,
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to download transaction certificate (HTTP ${res.status})`);
+  }
+  const blob = await res.blob();
+  const filename = `ReviveAI_Transaction_${transactionId}.pdf`;
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
 

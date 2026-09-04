@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+import datetime
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
 from app.schemas.revive import TransactionCreate, TransactionUpdate
+from app.services.report_service import generate_transaction_pdf
 from app.services.serializers import transaction_dict
 from app.services.transaction_service import (
     create_transaction,
@@ -51,6 +53,30 @@ def get_transaction_endpoint(
 ) -> dict:
     transaction = get_transaction_or_404(db, transaction_id)
     return transaction_dict(transaction, include_detail=True)
+
+
+@router.get("/transactions/{transaction_id}/pdf")
+def download_transaction_pdf_endpoint(
+    transaction_id: str,
+    db: Session = Depends(get_db),
+    _current_user=Depends(get_current_user),
+):
+    """
+    Generates an individualized audit PDF certificate for a single transaction.
+    """
+    transaction = get_transaction_or_404(db, transaction_id)
+    tx_data = transaction_dict(transaction, include_detail=True)
+    pdf_bytes = generate_transaction_pdf(tx_data)
+    filename = f"ReviveAI_Transaction_{transaction_id}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
 
 
 @router.patch("/transactions/{transaction_id}")

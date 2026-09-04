@@ -49,7 +49,7 @@ def download_pdf_report(
     _current_user=Depends(get_current_user),
 ):
     """
-    Generates and returns downloadable professional PDF report.
+    Generates and returns downloadable professional A4 PDF report with real-time database data.
     """
     report_data = get_report_data(
         db=db,
@@ -60,8 +60,8 @@ def download_pdf_report(
         recovery_method=recovery_method,
     )
     pdf_bytes = generate_report_pdf(report_data)
-    cur_date = datetime.date.today().strftime("%Y-%m-%d")
-    filename = f"ReviveAI_Revenue_Recovery_Report_{cur_date}.pdf"
+    cur_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d_%H-%M")
+    filename = f"ReviveAI_Revenue_Recovery_Report_{cur_time}.pdf"
 
     return Response(
         content=pdf_bytes,
@@ -84,7 +84,7 @@ def download_excel_report(
     _current_user=Depends(get_current_user),
 ):
     """
-    Generates and returns downloadable multi-sheet Excel spreadsheet report.
+    Generates and returns downloadable 5-sheet Excel spreadsheet report with real-time database data.
     """
     report_data = get_report_data(
         db=db,
@@ -95,8 +95,8 @@ def download_excel_report(
         recovery_method=recovery_method,
     )
     excel_bytes = generate_report_excel(report_data)
-    cur_date = datetime.date.today().strftime("%Y-%m-%d")
-    filename = f"ReviveAI_Revenue_Recovery_Report_{cur_date}.xlsx"
+    cur_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d_%H-%M")
+    filename = f"ReviveAI_Revenue_Recovery_Report_{cur_time}.xlsx"
 
     return Response(
         content=excel_bytes,

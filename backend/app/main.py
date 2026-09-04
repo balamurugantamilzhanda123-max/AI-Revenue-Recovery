@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# Ensure backend root is in sys.path for Vercel/serverless environments
+_backend_root = str(Path(__file__).resolve().parent.parent)
+if _backend_root not in sys.path:
+    sys.path.insert(0, _backend_root)
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware

@@ -1,3 +1,5 @@
+import os
+import tempfile
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
@@ -11,6 +13,9 @@ def _normalize_database_url(url: str) -> str:
         return url.replace("postgresql://", "postgresql+psycopg://", 1)
     if url.startswith("postgres://"):
         return url.replace("postgres://", "postgresql+psycopg://", 1)
+    if url.startswith("sqlite") and (os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")):
+        tmp_db = os.path.join(tempfile.gettempdir(), "reviveai_demo.db")
+        return f"sqlite:///{tmp_db}"
     return url
 
 

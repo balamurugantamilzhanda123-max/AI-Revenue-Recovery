@@ -158,7 +158,7 @@ def _generate_ids() -> tuple[str, str, str]:
 @router.post("/register")
 def register_customer(payload: CustomerRegisterRequest, db: Session = Depends(get_db)):
     """Registers a new customer and returns customer session."""
-    if payload.password != payload.confirm_password:
+    if payload.confirm_password is not None and payload.password != payload.confirm_password:
         raise HTTPException(status_code=400, detail="Passwords do not match.")
 
     clean_email = payload.email.strip().lower()

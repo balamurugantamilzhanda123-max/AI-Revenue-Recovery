@@ -145,7 +145,7 @@ def run_all_13_tests():
         new_scenario_payload = {
             "amount": 6999,
             "currency": "INR",
-            "simulation_scenario": "PAYMENT_SUCCESS",
+            "simulation_scenario": "NETWORK_ERROR",
             "product_id": "prod_acc_mech_keyboard_01",
             "customer": {
                 "name": "Priya Sharma",
@@ -160,7 +160,7 @@ def run_all_13_tests():
         dash_res_fresh = client.get("/api/dashboard/summary")
         dash_data_fresh = dash_res_fresh.json()
         assert dash_data_fresh["total_transactions"] == 1
-        assert dash_data_fresh["revenue_at_risk"] == 0.0
+        assert dash_data_fresh["revenue_at_risk"] == 6999.0
 
         tx_res_fresh = client.get("/api/transactions")
         tx_list_fresh = tx_res_fresh.json().get("data", [])

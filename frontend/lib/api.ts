@@ -505,6 +505,7 @@ export interface ElectricalProduct {
   category: string;
   subcategory?: string;
   price: number;
+  discount?: number;
   discountPrice?: number;
   currency: string;
   stock: number;
@@ -516,6 +517,9 @@ export interface ElectricalProduct {
   badge?: string;
   image_url: string;
   image?: string;
+  image_source?: "LOCAL" | "EXTERNAL" | "AI_GENERATED" | "FALLBACK";
+  image_status?: "IMAGE_AVAILABLE" | "IMAGE_GENERATING" | "IMAGE_GENERATED" | "IMAGE_FAILED" | "IMAGE_UNAVAILABLE";
+  image_prompt?: string;
   description: string;
   specs?: Record<string, string>;
   createdAt?: string;
@@ -1120,3 +1124,50 @@ export async function completeHumanPayment(
     body: JSON.stringify(payload || {}),
   });
 }
+
+// ==========================================
+// Product Catalog & AI Image Studio
+// ==========================================
+
+export interface ImageStatusReport {
+  total_products: number;
+  local_verified_images: number;
+  ai_generated_images: number;
+  external_verified_images: number;
+  fallback_ready: number;
+  coverage_percentage: number;
+  status: string;
+}
+
+export async function fetchImageStatus(): Promise<ImageStatusReport> {
+  return request<ImageStatusReport>("/api/products/images/status");
+}
+
+export async function generateProductImage(
+  productId: string,
+  promptOverride?: string
+): Promise<{
+  success: boolean;
+  product_id: string;
+  product_name: string;
+  image_url: string;
+  image_source: string;
+  image_status: string;
+  prompt: string;
+  message: string;
+}> {
+  return request<{
+    success: boolean;
+    product_id: string;
+    product_name: string;
+    image_url: string;
+    image_source: string;
+    image_status: string;
+    prompt: string;
+    message: string;
+  }>(`/api/products/${encodeURIComponent(productId)}/generate-image`, {
+    method: "POST",
+    body: JSON.stringify({ product_id: productId, prompt_override: promptOverride }),
+  });
+}
+

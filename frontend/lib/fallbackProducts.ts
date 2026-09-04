@@ -6,6 +6,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   // ==========================================
   {
     id: "prod_led_bulb_01",
+    image_url: "/products/existing/prod_led_bulb_01.svg",
+    image: "/products/existing/prod_led_bulb_01.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-LGT-01",
     name: "Philips Stellar 9W LED Bulb (Cool Day White)",
     category: "Lighting",
@@ -18,7 +22,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.8,
     reviews_count: 640,
     badge: "Bestseller",
-    image_url: "https://images.unsplash.com/photo-1550524514-6c70313172ca?w=600&auto=format&fit=crop&q=80",
     description: "Energy-efficient 9W B22 LED bulb offering 900 Lumens crystal clear cool daylight with surge protection up to 4kV.",
     specs: {
       Wattage: "9W",
@@ -31,6 +34,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_led_bulb_12w",
+    image_url: "/products/existing/prod_led_bulb_12w.svg",
+    image: "/products/existing/prod_led_bulb_12w.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-LGT-02",
     name: "Havells Glaze 12W High-Beam LED Bulb",
     category: "Lighting",
@@ -43,7 +50,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.7,
     reviews_count: 480,
     badge: "High Brightness",
-    image_url: "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600&auto=format&fit=crop&q=80",
     description: "High-lumen 12W LED bulb with wide 220° beam angle and anti-glare frosted diffuser for large rooms.",
     specs: {
       Wattage: "12W",
@@ -55,6 +61,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_smart_bulb_02",
+    image_url: "/products/existing/prod_smart_bulb_02.svg",
+    image: "/products/existing/prod_smart_bulb_02.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-LGT-03",
     name: "Wipro Next 20W Smart RGB LED Bulb (WiFi + Alexa)",
     category: "Lighting",
@@ -67,7 +77,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.7,
     reviews_count: 340,
     badge: "Smart Home",
-    image_url: "https://images.unsplash.com/photo-1558002038-1055907df827?w=600&auto=format&fit=crop&q=80",
     description: "16 million colors tunable smart bulb with voice control via Amazon Alexa & Google Home, scheduling, and music sync.",
     specs: {
       Wattage: "20W",
@@ -79,6 +88,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_tube_light_03",
+    image_url: "/products/existing/prod_tube_light_03.svg",
+    image: "/products/existing/prod_tube_light_03.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-LGT-04",
     name: "Syska Lumina 36W LED Batten Tube Light (4 Feet)",
     category: "Lighting",
@@ -91,7 +104,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.6,
     reviews_count: 210,
     badge: "Super Bright",
-    image_url: "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=600&auto=format&fit=crop&q=80",
     description: "Slim 4-foot LED batten delivering uniform shadow-free lighting with durable polycarbonate housing and high lumen output.",
     specs: {
       Wattage: "36W",
@@ -103,6 +115,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_panel_light_04",
+    image_url: "/products/existing/prod_panel_light_04.svg",
+    image: "/products/existing/prod_panel_light_04.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-LGT-05",
     name: "Crompton Slim Ray 15W Round LED Recessed Panel Light",
     category: "Lighting",
@@ -115,7 +131,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.7,
     reviews_count: 180,
     badge: "Modern Ceiling",
-    image_url: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&auto=format&fit=crop&q=80",
     description: "Ultra-thin recessed ceiling panel light with edge-lit LED technology and anti-glare diffuser for modern interiors.",
     specs: {
       Wattage: "15W",
@@ -127,6 +142,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_flood_light_05",
+    image_url: "/products/existing/prod_flood_light_05.svg",
+    image: "/products/existing/prod_flood_light_05.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-LGT-06",
     name: "Polycab IP66 50W Outdoor Waterproof LED Flood Light",
     category: "Lighting",
@@ -139,7 +158,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 110,
     badge: "Industrial Grade",
-    image_url: "https://images.unsplash.com/photo-1517999144091-3d9dca6d1e43?w=600&auto=format&fit=crop&q=80",
     description: "Heavy-duty die-cast aluminum waterproof floodlight designed for gardens, parking lots, security illumination, and workshops.",
     specs: {
       Wattage: "50W",
@@ -155,6 +173,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   // ==========================================
   {
     id: "prod_ceiling_fan_01",
+    image_url: "/products/existing/prod_ceiling_fan_01.svg",
+    image: "/products/existing/prod_ceiling_fan_01.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-FAN-01",
     name: "Atomberg Renesa 1200mm Smart BLDC Ceiling Fan (Remote)",
     category: "Fans & Cooling",
@@ -167,7 +189,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 850,
     badge: "65% Energy Saving",
-    image_url: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80",
     description: "Super energy-efficient BLDC motor ceiling fan with smart remote control, boost mode, sleep timer, and LED speed indicators.",
     specs: {
       "Sweep Size": "1200 mm",
@@ -180,6 +201,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_ceiling_fan_02",
+    image_url: "/products/existing/prod_ceiling_fan_02.svg",
+    image: "/products/existing/prod_ceiling_fan_02.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-FAN-02",
     name: "Orient Electric Aeroquiet 1200mm Silent Ceiling Fan",
     category: "Fans & Cooling",
@@ -192,7 +217,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.8,
     reviews_count: 420,
     badge: "Whisper Quiet",
-    image_url: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&auto=format&fit=crop&q=80",
     description: "Aerodynamic PU finish fan with curved blades designed for ultra-low noise operation and high air thrust.",
     specs: {
       "Sweep Size": "1200 mm",
@@ -204,6 +228,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_exhaust_fan_03",
+    image_url: "/products/existing/prod_exhaust_fan_03.svg",
+    image: "/products/existing/prod_exhaust_fan_03.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-FAN-03",
     name: "Havells Ventil Air DB 200mm Heavy Exhaust Fan",
     category: "Fans & Cooling",
@@ -216,7 +244,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.6,
     reviews_count: 290,
     badge: "High Airflow",
-    image_url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&auto=format&fit=crop&q=80",
     description: "Durable metal blade exhaust fan with automatic gravity shutters to prevent dust and bird entry, ideal for kitchens and restrooms.",
     specs: {
       "Sweep Size": "200 mm (8 Inch)",
@@ -228,6 +255,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_pedestal_fan_04",
+    image_url: "/products/existing/prod_pedestal_fan_04.svg",
+    image: "/products/existing/prod_pedestal_fan_04.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-FAN-04",
     name: "Usha Mist Air Icy 400mm Pedestal Fan with Oscillation",
     category: "Fans & Cooling",
@@ -240,7 +271,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.7,
     reviews_count: 310,
     badge: "High Thrust",
-    image_url: "https://images.unsplash.com/photo-1622445262464-84b1456045b6?w=600&auto=format&fit=crop&q=80",
     description: "Aerodynamically balanced 3-blade pedestal fan with telescopic height adjustment and thermal overload motor protection.",
     specs: {
       "Sweep Size": "400 mm",
@@ -252,6 +282,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_tower_fan_05",
+    image_url: "/products/existing/prod_tower_fan_05.svg",
+    image: "/products/existing/prod_tower_fan_05.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-FAN-05",
     name: "Bajaj Windfall 750mm Compact Tower Fan (3-Speed)",
     category: "Fans & Cooling",
@@ -264,7 +298,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.5,
     reviews_count: 160,
     badge: "Space Saver",
-    image_url: "https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=600&auto=format&fit=crop&q=80",
     description: "Sleek compact tower fan with wide 80° oscillation, 3-speed rotary controller, and noiseless cross-flow blower.",
     specs: {
       Height: "750 mm",
@@ -280,6 +313,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   // ==========================================
   {
     id: "prod_laptop_biz_01",
+    image_url: "/products/existing/prod_laptop_biz_01.svg",
+    image: "/products/existing/prod_laptop_biz_01.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-LPT-01",
     name: "ProBook Ultra Slim 15.6\" Business Laptop (Core i7, 16GB, 1TB SSD)",
     category: "Laptops & Computers",
@@ -292,7 +329,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 215,
     badge: "Enterprise Pro",
-    image_url: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80",
     description: "Ultra-fast enterprise business laptop featuring Intel Core i7 13th Gen processor, 16GB DDR5 memory, 1TB NVMe PCIe 4.0 SSD, fingerprint security, and 12-hour fast-charge battery.",
     specs: {
       Processor: "Intel Core i7-1355U (10 Cores, up to 5.0 GHz)",
@@ -308,6 +344,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_laptop_workstation_02",
+    image_url: "/products/existing/prod_laptop_workstation_02.svg",
+    image: "/products/existing/prod_laptop_workstation_02.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-LPT-02",
     name: "Precision Workstation 16\" (Core i9, 32GB RAM, RTX 4070, 2TB SSD)",
     category: "Laptops & Computers",
@@ -320,7 +360,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 5.0,
     reviews_count: 88,
     badge: "Heavy Computing",
-    image_url: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600&auto=format&fit=crop&q=80",
     description: "High-performance workstation engineered for 3D modeling, deep learning, video rendering, and heavy multitasking. Features dedicated NVIDIA GeForce RTX 4070 8GB GDDR6 GPU.",
     specs: {
       Processor: "Intel Core i9-13900H (14 Cores, 20 Threads, up to 5.4 GHz)",
@@ -336,6 +375,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_laptop_student_03",
+    image_url: "/products/existing/prod_laptop_student_03.svg",
+    image: "/products/existing/prod_laptop_student_03.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-LPT-03",
     name: "ZenBook Lite 14\" Portable Ultrabook (Ryzen 5, 16GB, 512GB SSD)",
     category: "Laptops & Computers",
@@ -348,7 +391,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.8,
     reviews_count: 310,
     badge: "Best Value",
-    image_url: "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&auto=format&fit=crop&q=80",
     description: "Featherlight all-metal ultrabook with AMD Ryzen 5 7530U processor, 16GB LPDDR4X RAM, backlit keyboard, and vibrant OLED display with all-day battery life.",
     specs: {
       Processor: "AMD Ryzen 5 7530U (6 Cores, 12 Threads, up to 4.5 GHz)",
@@ -363,6 +405,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_laptop_gaming_04",
+    image_url: "/products/existing/prod_laptop_gaming_04.svg",
+    image: "/products/existing/prod_laptop_gaming_04.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-LPT-04",
     name: "Titan Strix 15.6\" High-FPS Gaming Laptop (Core i7, RTX 4060, 16GB, 1TB)",
     category: "Laptops & Computers",
@@ -375,7 +421,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 145,
     badge: "144Hz Refresh",
-    image_url: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600&auto=format&fit=crop&q=80",
     description: "Built for esports and extreme gaming performance. Equipped with Intel Core i7 13th Gen, NVIDIA RTX 4060 8GB GPU with MUX Switch, 4-zone RGB keyboard, and 144Hz panel.",
     specs: {
       Processor: "Intel Core i7-13650HX (14 Cores, 24M Cache, up to 4.9 GHz)",
@@ -389,6 +434,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_laptop_convertible_05",
+    image_url: "/products/existing/prod_laptop_convertible_05.svg",
+    image: "/products/existing/prod_laptop_convertible_05.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-LPT-05",
     name: "FlexiTouch 2-in-1 14\" Touchscreen Convertible Laptop (Stylus Included)",
     category: "Laptops & Computers",
@@ -401,7 +450,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.7,
     reviews_count: 95,
     badge: "Touch & Stylus",
-    image_url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
     description: "Versatile 360-degree rotating touchscreen laptop with active digital stylus pen, aluminum body, Harman speakers, and fingerprint unlock.",
     specs: {
       Processor: "Intel Core i5-1335U (10 Cores, up to 4.6 GHz)",
@@ -416,6 +464,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_desktop_mini_06",
+    image_url: "/products/existing/prod_desktop_mini_06.svg",
+    image: "/products/existing/prod_desktop_mini_06.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-LPT-06",
     name: "Compact Tower Micro Desktop PC (Core i7, 32GB RAM, 1TB SSD, WiFi 6E)",
     category: "Laptops & Computers",
@@ -428,7 +480,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.8,
     reviews_count: 67,
     badge: "Micro Workstation",
-    image_url: "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=600&auto=format&fit=crop&q=80",
     description: "Compact 1-Litre commercial desktop workstation engineered for multi-monitor setups, corporate offices, accounting, and development environments.",
     specs: {
       Processor: "Intel Core i7-13700T (16 Cores, 24 Threads)",
@@ -446,6 +497,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   // ==========================================
   {
     id: "prod_acc_mech_keyboard_01",
+    image_url: "/products/existing/prod_acc_mech_keyboard_01.svg",
+    image: "/products/existing/prod_acc_mech_keyboard_01.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-ACC-01",
     name: "Keychron K2 V2 Wireless Mechanical Keyboard (RGB, Hot-Swappable)",
     category: "Computer Accessories",
@@ -458,7 +513,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 320,
     badge: "Hot Swappable",
-    image_url: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80",
     description: "Compact 75% layout wireless mechanical keyboard with Gateron G Pro Red linear switches, Mac & Windows keycaps, 4000mAh battery, and customizable RGB backlighting.",
     specs: {
       Layout: "75% (84 Keys)",
@@ -471,6 +525,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_acc_ergo_mouse_02",
+    image_url: "/products/existing/prod_acc_ergo_mouse_02.svg",
+    image: "/products/existing/prod_acc_ergo_mouse_02.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-ACC-02",
     name: "Logitech MX Master 3S Advanced Wireless Ergonomic Mouse",
     category: "Computer Accessories",
@@ -483,7 +541,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 5.0,
     reviews_count: 512,
     badge: "Top Productivity",
-    image_url: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80",
     description: "Premier productivity mouse with 8K DPI track-on-glass optical sensor, MagSpeed electromagnetic scroll wheel, quiet click switches, and USB-C fast charging.",
     specs: {
       Sensor: "8000 DPI Darkfield High Precision",
@@ -496,6 +553,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_acc_monitor_03",
+    image_url: "/products/existing/prod_acc_monitor_03.svg",
+    image: "/products/existing/prod_acc_monitor_03.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-ACC-03",
     name: "LG 27\" UltraFine 4K UHD IPS Monitor (USB-C 65W PD, HDR400)",
     category: "Computer Accessories",
@@ -508,7 +569,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.8,
     reviews_count: 180,
     badge: "4K Color Accurate",
-    image_url: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600&auto=format&fit=crop&q=80",
     description: "Professional 27-inch 4K UHD IPS display offering 99% sRGB color gamut, HDR 400 support, height-adjustable stand, and single USB-C cable for 65W power delivery and video.",
     specs: {
       Resolution: "3840 x 2160 (4K UHD)",
@@ -521,6 +581,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_acc_dock_04",
+    image_url: "/products/existing/prod_acc_dock_04.svg",
+    image: "/products/existing/prod_acc_dock_04.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-ACC-04",
     name: "Anker 13-in-1 Triple Display Thunderbolt 4 Docking Station (100W PD)",
     category: "Computer Accessories",
@@ -533,7 +597,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 94,
     badge: "Triple Display",
-    image_url: "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=600&auto=format&fit=crop&q=80",
     description: "High-speed 40Gbps Thunderbolt 4 docking hub supporting triple 4K monitors, Gigabit Ethernet, SD card slots, USB 3.2 10Gbps ports, and 100W host charging.",
     specs: {
       Bandwidth: "40Gbps Thunderbolt 4 / USB4",
@@ -545,6 +608,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_acc_ssd_05",
+    image_url: "/products/existing/prod_acc_ssd_05.svg",
+    image: "/products/existing/prod_acc_ssd_05.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-ACC-05",
     name: "Samsung T7 Shield 2TB Rugged External Portable NVMe SSD (1050MB/s)",
     category: "Computer Accessories",
@@ -557,7 +624,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 280,
     badge: "IP65 Rugged",
-    image_url: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=600&auto=format&fit=crop&q=80",
     description: "Heavy-duty drop-resistant IP65 dust and water-resistant external SSD with sequential read/write speeds up to 1,050 MB/s and hardware AES 256-bit encryption.",
     specs: {
       Capacity: "2TB",
@@ -570,6 +636,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_acc_router_06",
+    image_url: "/products/existing/prod_acc_router_06.svg",
+    image: "/products/existing/prod_acc_router_06.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "COMP-ACC-06",
     name: "TP-Link Archer AXE75 Tri-Band WiFi 6E Gigabit Gaming Router (5400Mbps)",
     category: "Computer Accessories",
@@ -582,7 +652,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.8,
     reviews_count: 150,
     badge: "Tri-Band 6GHz",
-    image_url: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=600&auto=format&fit=crop&q=80",
     description: "Next-gen Tri-Band WiFi 6E router opening up the clean 6GHz band with 6 high-gain antennas, 1.7GHz Quad-Core CPU, and HomeShield security.",
     specs: {
       Bands: "6GHz (2402 Mbps) + 5GHz (2402 Mbps) + 2.4GHz (574 Mbps)",
@@ -599,6 +668,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   // ==========================================
   {
     id: "prod_spike_guard_01",
+    image_url: "/products/existing/prod_spike_guard_01.svg",
+    image: "/products/existing/prod_spike_guard_01.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-PWR-01",
     name: "Goldmedal Curve Plus 6-Way Surge Protector & Extension Strip",
     category: "Power & Cables",
@@ -611,7 +684,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.8,
     reviews_count: 530,
     badge: "Surge Protected",
-    image_url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
     description: "Heavy-duty 6 universal socket extension board with individual LED power switches, built-in MOV surge suppressor, and 2.5-meter ISI certified fire-retardant cable.",
     specs: {
       Sockets: "6 Universal Sockets with Safety Shutters",
@@ -623,6 +695,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_industrial_reel_02",
+    image_url: "/products/existing/prod_industrial_reel_02.svg",
+    image: "/products/existing/prod_industrial_reel_02.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-PWR-02",
     name: "Havells Industrial Heavy Cable Reel 25-Meter (16A / 3500W)",
     category: "Power & Cables",
@@ -635,7 +711,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 140,
     badge: "16A Heavy Duty",
-    image_url: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80",
     description: "Rugged metal drum extension reel with thermal cut-out overload protection, ergonomic winding handle, and 25 meters of heavy-gauge 3-core copper cable.",
     specs: {
       Length: "25 Meters",
@@ -647,6 +722,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_copper_wire_03",
+    image_url: "/products/existing/prod_copper_wire_03.svg",
+    image: "/products/existing/prod_copper_wire_03.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-PWR-03",
     name: "Polycab 2.5 sq.mm Flame Retardant FRLS House Wire (90m Reel)",
     category: "Power & Cables",
@@ -659,7 +738,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 310,
     badge: "100% Pure Copper",
-    image_url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
     description: "Electrolytic grade 99.97% pure bare copper conductor with Flame Retardant Low Smoke (FRLS) insulation for residential and commercial electrical wiring.",
     specs: {
       Gauge: "2.5 sq.mm",
@@ -675,6 +753,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   // ==========================================
   {
     id: "prod_smart_touch_switch_01",
+    image_url: "/products/existing/prod_smart_touch_switch_01.svg",
+    image: "/products/existing/prod_smart_touch_switch_01.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-SWT-01",
     name: "Legrand Arteor 4-Gang Smart Touch Glass Switchboard (WiFi/App)",
     category: "Switches & Wiring",
@@ -687,7 +769,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.8,
     reviews_count: 175,
     badge: "Smart Home",
-    image_url: "https://images.unsplash.com/photo-1558002038-1055907df827?w=600&auto=format&fit=crop&q=80",
     description: "Toughened scratch-resistant crystal glass touch panel with backlit capacitive indicators, WiFi smartphone control, timer routines, and Alexa/Google Home voice sync.",
     specs: {
       Gangs: "4 Capacitive Touch Channels",
@@ -699,6 +780,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_mcb_double_pole_02",
+    image_url: "/products/existing/prod_mcb_double_pole_02.svg",
+    image: "/products/existing/prod_mcb_double_pole_02.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-SWT-02",
     name: "Schneider Electric Acti9 32A Double Pole C-Curve MCB (10kA)",
     category: "Switches & Wiring",
@@ -711,7 +796,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 240,
     badge: "Industrial Safety",
-    image_url: "https://images.unsplash.com/photo-1517999144091-3d9dca6d1e43?w=600&auto=format&fit=crop&q=80",
     description: "High-breaking capacity miniature circuit breaker engineered for reliable overload and short-circuit protection of air conditioners, inverters, and main distributions.",
     specs: {
       Poles: "2 Pole (DP)",
@@ -727,6 +811,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   // ==========================================
   {
     id: "prod_induction_cooktop_01",
+    image_url: "/products/existing/prod_induction_cooktop_01.svg",
+    image: "/products/existing/prod_induction_cooktop_01.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-KTN-01",
     name: "Prestige Iris 2000W Smart Induction Cooktop with Indian Menus",
     category: "Kitchen Appliances",
@@ -739,7 +827,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.7,
     reviews_count: 460,
     badge: "Top Seller",
-    image_url: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80",
     description: "High-efficiency 2000W induction stove with anti-magnetic ceramic glass plate, automatic voltage regulator, dual heat sensors, and one-touch Indian cooking presets.",
     specs: {
       Wattage: "2000W Fast Heating",
@@ -751,6 +838,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_electric_kettle_02",
+    image_url: "/products/existing/prod_electric_kettle_02.svg",
+    image: "/products/existing/prod_electric_kettle_02.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-KTN-02",
     name: "Havells Aqua Plus 1.2L Double-Wall Stainless Steel Electric Kettle",
     category: "Kitchen Appliances",
@@ -763,7 +854,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.8,
     reviews_count: 320,
     badge: "Cool Touch",
-    image_url: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&auto=format&fit=crop&q=80",
     description: "Double-wall insulated cool-touch 304 food-grade stainless steel electric kettle with 360° cordless swivel base and dry-boil safety auto cutoff.",
     specs: {
       Capacity: "1.2 Litres",
@@ -779,6 +869,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   // ==========================================
   {
     id: "prod_inverter_sine_01",
+    image_url: "/products/existing/prod_inverter_sine_01.svg",
+    image: "/products/existing/prod_inverter_sine_01.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-INV-01",
     name: "Luminous Zelio+ 1100 Pure Sine Wave Home UPS Inverter",
     category: "Inverters & Heavy Power",
@@ -791,7 +885,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.9,
     reviews_count: 380,
     badge: "Smart Display",
-    image_url: "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600&auto=format&fit=crop&q=80",
     description: "Intelligent 32-bit DSP processor home inverter with intuitive LCD display showing backup time in hours, battery charge percentage, and bypass switch for appliances.",
     specs: {
       Capacity: "900 VA / 756 Watts",
@@ -803,6 +896,10 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
   },
   {
     id: "prod_tubular_battery_02",
+    image_url: "/products/existing/prod_tubular_battery_02.svg",
+    image: "/products/existing/prod_tubular_battery_02.svg",
+    image_source: "LOCAL",
+    image_status: "IMAGE_AVAILABLE",
     productId: "ELEC-INV-02",
     name: "Exide InvaMaster 150Ah Tall Tubular Inverter Battery",
     category: "Inverters & Heavy Power",
@@ -815,7 +912,6 @@ export const FALLBACK_PRODUCTS: ElectricalProduct[] = [
     rating: 4.8,
     reviews_count: 220,
     badge: "Heavy Duty",
-    image_url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
     description: "Ultra low-maintenance heavy-duty tall tubular lead-acid battery engineered for deep discharge recovery and long power outages in harsh climate conditions.",
     specs: {
       Capacity: "150 Ah @ C20",

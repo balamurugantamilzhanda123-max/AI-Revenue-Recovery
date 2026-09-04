@@ -37,6 +37,7 @@ import {
   ElectricalProduct,
   CustomerProfile,
 } from "../../lib/api";
+import ProductImage from "../../components/common/ProductImage";
 
 const CATEGORIES = [
   "All",
@@ -570,29 +571,28 @@ export default function ElectricalStorePage() {
                 >
                   <div>
                     {/* Product Image Container */}
-                    <div
-                      onClick={() => {
-                        setSelectedProductModal(product);
-                        setProductModalQty(1);
-                      }}
-                      className="relative w-full h-48 bg-slate-950 rounded-xl overflow-hidden mb-3.5 cursor-pointer flex items-center justify-center p-2 border border-slate-800/80 group-hover:border-slate-700"
-                    >
-                      <img
-                        src={imageUrl}
-                        alt={product.name}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = getPlaceholderImage(product.category);
+                    <div className="relative mb-3.5 cursor-pointer">
+                      <ProductImage
+                        productId={product.id}
+                        productName={product.name}
+                        category={product.category}
+                        src={product.image_url || product.image}
+                        imageSource={product.image_source}
+                        imageStatus={product.image_status}
+                        aspectRatio="square"
+                        onClick={() => {
+                          setSelectedProductModal(product);
+                          setProductModalQty(1);
                         }}
-                        className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
                       />
 
                       {product.badge && (
-                        <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500 text-slate-950 shadow-md">
+                        <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500 text-slate-950 shadow-md pointer-events-none z-10">
                           {product.badge}
                         </span>
                       )}
 
-                      <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-slate-950/80 backdrop-blur-sm text-[10px] font-mono font-semibold text-slate-300 border border-slate-800">
+                      <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-slate-950/80 backdrop-blur-sm text-[10px] font-mono font-semibold text-slate-300 border border-slate-800 pointer-events-none z-10">
                         {product.category}
                       </span>
                     </div>
@@ -679,14 +679,19 @@ export default function ElectricalStorePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Product Visual */}
               <div className="flex flex-col items-center">
-                <div className="w-full h-64 bg-slate-950 rounded-2xl overflow-hidden p-2 border border-slate-800 flex items-center justify-center relative">
-                  <img
-                    src={selectedProductModal.image_url || selectedProductModal.image || getPlaceholderImage(selectedProductModal.category)}
-                    alt={selectedProductModal.name}
-                    className="w-full h-full object-cover rounded-xl"
+                <div className="relative w-full">
+                  <ProductImage
+                    productId={selectedProductModal.id}
+                    productName={selectedProductModal.name}
+                    category={selectedProductModal.category}
+                    src={selectedProductModal.image_url || selectedProductModal.image}
+                    imageSource={selectedProductModal.image_source}
+                    imageStatus={selectedProductModal.image_status}
+                    aspectRatio="square"
+                    className="w-full h-64"
                   />
                   {selectedProductModal.badge && (
-                    <span className="absolute top-3 left-3 px-3 py-1 rounded-md text-xs font-mono font-bold bg-amber-500 text-slate-950">
+                    <span className="absolute top-3 left-3 px-3 py-1 rounded-md text-xs font-mono font-bold bg-amber-500 text-slate-950 shadow-md pointer-events-none z-10">
                       {selectedProductModal.badge}
                     </span>
                   )}
@@ -854,10 +859,14 @@ export default function ElectricalStorePage() {
                       key={item.product.id}
                       className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3"
                     >
-                      <img
-                        src={item.product.image_url || item.product.image || getPlaceholderImage(item.product.category)}
-                        alt={item.product.name}
-                        className="w-14 h-14 object-cover rounded-lg bg-slate-900 border border-slate-800 flex-shrink-0"
+                      <ProductImage
+                        productId={item.product.id}
+                        productName={item.product.name}
+                        category={item.product.category}
+                        src={item.product.image_url || item.product.image}
+                        imageSource={item.product.image_source}
+                        imageStatus={item.product.image_status}
+                        className="w-14 h-14 flex-shrink-0 p-1 rounded-lg"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs font-bold text-white truncate" title={item.product.name}>

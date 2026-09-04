@@ -16,6 +16,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     # ==========================================
     {
         "id": "prod_led_bulb_01",
+        "image_url": "/products/existing/prod_led_bulb_01.svg",
+        "image": "/products/existing/prod_led_bulb_01.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-LGT-01",
         "name": "Philips Stellar 9W LED Bulb (Cool Day White)",
         "category": "Lighting",
@@ -30,8 +34,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 640,
         "reviewCount": 640,
         "badge": "Bestseller",
-        "image_url": "https://images.unsplash.com/photo-1550524514-6c70313172ca?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1550524514-6c70313172ca?w=600&auto=format&fit=crop&q=80",
         "description": "Energy-efficient 9W B22 LED bulb offering 900 Lumens crystal clear cool daylight with surge protection up to 4kV.",
         "specs": {
             "Wattage": "9W",
@@ -44,6 +46,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_led_bulb_12w",
+        "image_url": "/products/existing/prod_led_bulb_12w.svg",
+        "image": "/products/existing/prod_led_bulb_12w.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-LGT-02",
         "name": "Havells Glaze 12W High-Beam LED Bulb",
         "category": "Lighting",
@@ -58,8 +64,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 480,
         "reviewCount": 480,
         "badge": "High Brightness",
-        "image_url": "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600&auto=format&fit=crop&q=80",
         "description": "High-lumen 12W LED bulb with wide 220° beam angle and anti-glare frosted diffuser for large rooms.",
         "specs": {
             "Wattage": "12W",
@@ -71,6 +75,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_smart_bulb_02",
+        "image_url": "/products/existing/prod_smart_bulb_02.svg",
+        "image": "/products/existing/prod_smart_bulb_02.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-LGT-03",
         "name": "Wipro Next 20W Smart RGB LED Bulb (WiFi + Alexa)",
         "category": "Lighting",
@@ -85,8 +93,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 340,
         "reviewCount": 340,
         "badge": "Smart Home",
-        "image_url": "https://images.unsplash.com/photo-1558002038-1055907df827?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1558002038-1055907df827?w=600&auto=format&fit=crop&q=80",
         "description": "16 million colors tunable smart bulb with voice control via Amazon Alexa & Google Home, scheduling, and music sync.",
         "specs": {
             "Wattage": "20W",
@@ -98,6 +104,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_tube_light_03",
+        "image_url": "/products/existing/prod_tube_light_03.svg",
+        "image": "/products/existing/prod_tube_light_03.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-LGT-04",
         "name": "Havells Glaze 20W T5 LED Batten Tube Light (4 Feet)",
         "category": "Lighting",
@@ -112,8 +122,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 180,
         "reviewCount": 180,
         "badge": "Energy Saver",
-        "image_url": "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=600&auto=format&fit=crop&q=80",
         "description": "Ultra-slim 20W batten tube light with uniform light distribution, glare-free optical diffuser, and corrosion-resistant body.",
         "specs": {
             "Length": "4 Feet (1200mm)",
@@ -125,6 +133,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_emergency_light_11",
+        "image_url": "/products/existing/prod_emergency_light_11.svg",
+        "image": "/products/existing/prod_emergency_light_11.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-LGT-05",
         "name": "Wipro Coral Rechargeable 24-LED Emergency Lantern",
         "category": "Lighting",
@@ -139,8 +151,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 220,
         "reviewCount": 220,
         "badge": "Long Backup",
-        "image_url": "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600&auto=format&fit=crop&q=80",
         "description": "Powerful 24 LED lantern with 3000mAh lithium-ion battery providing up to 8 hours backup, 360-degree illumination, and auto-on on power cut.",
         "specs": {
             "LED Count": "24 High Brightness LEDs",
@@ -152,6 +162,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_night_lamp_06",
+        "image_url": "/products/existing/prod_night_lamp_06.svg",
+        "image": "/products/existing/prod_night_lamp_06.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-LGT-06",
         "name": "Smart Motion Sensor Plug-in LED Night Lamp",
         "category": "Lighting",
@@ -166,8 +180,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 145,
         "reviewCount": 145,
         "badge": "Auto Sensor",
-        "image_url": "https://images.unsplash.com/photo-1550524514-6c70313172ca?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1550524514-6c70313172ca?w=600&auto=format&fit=crop&q=80",
         "description": "Dusk-to-dawn automatic motion sensing night lamp for hallways, bedrooms, and staircases. Warm soothing glow.",
         "specs": {
             "Power": "0.5W Ultra Low Power",
@@ -182,6 +194,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     # ==========================================
     {
         "id": "prod_ceiling_fan_04",
+        "image_url": "/products/existing/prod_ceiling_fan_04.svg",
+        "image": "/products/existing/prod_ceiling_fan_04.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-FAN-01",
         "name": "Crompton HighBreeze 1200mm Ceiling Fan (Brown)",
         "category": "Fans & Cooling",
@@ -196,8 +212,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 410,
         "reviewCount": 410,
         "badge": "High Air Delivery",
-        "image_url": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80",
         "description": "High-speed 380 RPM ceiling fan with 100% copper motor, double ball bearing, and aerodynamic ribbed blades.",
         "specs": {
             "Sweep": "1200 mm (48 inches)",
@@ -209,6 +223,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_smart_fan_05",
+        "image_url": "/products/existing/prod_smart_fan_05.svg",
+        "image": "/products/existing/prod_smart_fan_05.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-FAN-02",
         "name": "Atomberg Renesa BLDC Smart Ceiling Fan with Remote",
         "category": "Fans & Cooling",
@@ -223,8 +241,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 620,
         "reviewCount": 620,
         "badge": "5-Star BLDC",
-        "image_url": "https://images.unsplash.com/photo-1594918074900-50d4f20f66e0?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1594918074900-50d4f20f66e0?w=600&auto=format&fit=crop&q=80",
         "description": "Super energy-efficient BLDC motor saves up to 65% electricity (consumes only 28W). Comes with smart remote & IoT WiFi app control.",
         "specs": {
             "Motor": "BLDC Inverter Tech",
@@ -236,6 +252,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_table_fan_06",
+        "image_url": "/products/existing/prod_table_fan_06.svg",
+        "image": "/products/existing/prod_table_fan_06.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-FAN-03",
         "name": "Usha Mist Air 400mm High-Speed Table Fan",
         "category": "Fans & Cooling",
@@ -250,8 +270,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 195,
         "reviewCount": 195,
         "badge": "Compact Air",
-        "image_url": "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&auto=format&fit=crop&q=80",
         "description": "Aerodynamically designed 3-blade table fan with 100% copper motor, thermal overload protector, and smooth oscillation.",
         "specs": {
             "Sweep": "400 mm",
@@ -263,6 +281,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_exhaust_fan_07",
+        "image_url": "/products/existing/prod_exhaust_fan_07.svg",
+        "image": "/products/existing/prod_exhaust_fan_07.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-FAN-04",
         "name": "Luminous Vento Deluxe 200mm High-Suction Exhaust Fan",
         "category": "Fans & Cooling",
@@ -277,8 +299,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 130,
         "reviewCount": 130,
         "badge": "Silent Suction",
-        "image_url": "https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?w=600&auto=format&fit=crop&q=80",
         "description": "High air suction exhaust fan for kitchens and bathrooms with automatic back shutters to prevent dust and insects.",
         "specs": {
             "Sweep": "200 mm",
@@ -290,6 +310,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_wall_fan_08",
+        "image_url": "/products/existing/prod_wall_fan_08.svg",
+        "image": "/products/existing/prod_wall_fan_08.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-FAN-05",
         "name": "Orient Electric 450mm High-Speed Wall Fan with Pull Cord",
         "category": "Fans & Cooling",
@@ -304,8 +328,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 160,
         "reviewCount": 160,
         "badge": "Wall Mount",
-        "image_url": "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&auto=format&fit=crop&q=80",
         "description": "Wall mounted oscillating fan with dual pull cord control for speed and oscillation. Aerodynamic resin blades for high thrust.",
         "specs": {
             "Sweep": "450 mm",
@@ -320,6 +342,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     # ==========================================
     {
         "id": "prod_extension_board_12",
+        "image_url": "/products/existing/prod_extension_board_12.svg",
+        "image": "/products/existing/prod_extension_board_12.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-PWR-01",
         "name": "Anchor by Panasonic 4-Socket Heavy Extension Board",
         "category": "Power & Cables",
@@ -334,8 +360,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 310,
         "reviewCount": 310,
         "badge": "Surge Protected",
-        "image_url": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
         "description": "4 universal international sockets with individual switch indicators, 2-meter heavy copper cord, and fire-retardant housing.",
         "specs": {
             "Sockets": "4 Universal Sockets",
@@ -347,6 +371,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_power_strip_13",
+        "image_url": "/products/existing/prod_power_strip_13.svg",
+        "image": "/products/existing/prod_power_strip_13.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-PWR-02",
         "name": "Belkin 6-Socket Essential Surge Protector Power Strip",
         "category": "Power & Cables",
@@ -361,8 +389,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 550,
         "reviewCount": 550,
         "badge": "650 Joules Surge",
-        "image_url": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
         "description": "650-Joule surge protection protects expensive computers, home theaters, and gaming consoles against voltage spikes and lightning.",
         "specs": {
             "Surge Rating": "650 Joules",
@@ -374,6 +400,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_usb_cable_15",
+        "image_url": "/products/existing/prod_usb_cable_15.svg",
+        "image": "/products/existing/prod_usb_cable_15.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-PWR-03",
         "name": "Boat Rugged Braided USB-C to USB-C 100W Fast Cable",
         "category": "Power & Cables",
@@ -388,8 +418,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 480,
         "reviewCount": 480,
         "badge": "Nylon Braided",
-        "image_url": "https://images.unsplash.com/photo-1541689592655-f5f52825a3b8?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1541689592655-f5f52825a3b8?w=600&auto=format&fit=crop&q=80",
         "description": "Heavy-duty nylon braided 100W Power Delivery cable with 10,000+ bend lifespan and 480Mbps high-speed data transfer.",
         "specs": {
             "Length": "1.5 Meters",
@@ -400,6 +428,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_hdmi_cable_16",
+        "image_url": "/products/existing/prod_hdmi_cable_16.svg",
+        "image": "/products/existing/prod_hdmi_cable_16.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-PWR-04",
         "name": "Ultra High-Speed 8K 60Hz HDMI 2.1 Braided Cable (2M)",
         "category": "Power & Cables",
@@ -414,8 +446,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 320,
         "reviewCount": 320,
         "badge": "8K 60Hz HDR",
-        "image_url": "https://images.unsplash.com/photo-1541689592655-f5f52825a3b8?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1541689592655-f5f52825a3b8?w=600&auto=format&fit=crop&q=80",
         "description": "48Gbps bandwidth 8K HDMI 2.1 cable supporting eARC, Dolby Vision, Dynamic HDR, and VRR for monitors and TVs.",
         "specs": {
             "Resolution": "8K @ 60Hz / 4K @ 120Hz",
@@ -426,6 +456,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_electrical_wire_20",
+        "image_url": "/products/existing/prod_electrical_wire_20.svg",
+        "image": "/products/existing/prod_electrical_wire_20.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-PWR-05",
         "name": "Finolex 2.5 sq mm Flame Retardant Copper Wire (90m Roll)",
         "category": "Power & Cables",
@@ -440,8 +474,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 720,
         "reviewCount": 720,
         "badge": "100% Pure Copper",
-        "image_url": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
         "description": "100% electrolytic grade multi-strand pure copper wire with lead-free flame-retardant (FR) PVC insulation for house wiring.",
         "specs": {
             "Cross Section": "2.5 sq mm",
@@ -453,6 +485,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_power_cable_17",
+        "image_url": "/products/existing/prod_power_cable_17.svg",
+        "image": "/products/existing/prod_power_cable_17.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-PWR-06",
         "name": "Heavy Duty 16A 3-Pin Computer & Appliance Power Cord (1.8M)",
         "category": "Power & Cables",
@@ -467,8 +503,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 210,
         "reviewCount": 210,
         "badge": "16A Heavy Duty",
-        "image_url": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
         "description": "Heavy-duty 16A molded Indian 3-pin plug to IEC C13 socket power cord for computers, servers, UPS, and laser printers.",
         "specs": {
             "Rating": "16A 250V AC",
@@ -479,6 +513,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_surge_protector_18",
+        "image_url": "/products/existing/prod_surge_protector_18.svg",
+        "image": "/products/existing/prod_surge_protector_18.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-PWR-07",
         "name": "Goldmedal Heavy Duty 8-Outlet Master Surge Suppressor",
         "category": "Power & Cables",
@@ -493,8 +531,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 280,
         "reviewCount": 280,
         "badge": "EMI/RFI Filter",
-        "image_url": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
         "description": "8 universal outlets with master switch, EMI/RFI noise filter, overload circuit breaker, and 900 Joules spike absorption.",
         "specs": {
             "Outlets": "8 Universal Sockets",
@@ -509,6 +545,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     # ==========================================
     {
         "id": "prod_electrical_switch_17",
+        "image_url": "/products/existing/prod_electrical_switch_17.svg",
+        "image": "/products/existing/prod_electrical_switch_17.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-SWT-01",
         "name": "Legrand Arteor 6A Modular Switch (Set of 10)",
         "category": "Switches & Wiring",
@@ -523,8 +563,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 610,
         "reviewCount": 610,
         "badge": "Architectural",
-        "image_url": "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=600&auto=format&fit=crop&q=80",
         "description": "Premium glossy white modular switch with silver cadmium oxide contacts for 100,000+ operations and spark-free switching.",
         "specs": {
             "Rating": "6A 240V AC 1-Way",
@@ -535,6 +573,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_smart_switch_19",
+        "image_url": "/products/existing/prod_smart_switch_19.svg",
+        "image": "/products/existing/prod_smart_switch_19.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-SWT-02",
         "name": "Sonoff WiFi 4-Gang Smart Touch Wall Switch",
         "category": "Switches & Wiring",
@@ -549,8 +591,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 290,
         "reviewCount": 290,
         "badge": "Smart Touch",
-        "image_url": "https://images.unsplash.com/photo-1558002038-1055907df827?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1558002038-1055907df827?w=600&auto=format&fit=crop&q=80",
         "description": "Tempered glass touch panel with WiFi and RF remote control. Alexa & Google Home compatible, timer scheduling.",
         "specs": {
             "Gangs": "4 Individual Channels",
@@ -561,6 +601,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_electrical_socket_18",
+        "image_url": "/products/existing/prod_electrical_socket_18.svg",
+        "image": "/products/existing/prod_electrical_socket_18.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-SWT-03",
         "name": "Schneider Electric Livia 6/16A Combined Shuttered Socket",
         "category": "Switches & Wiring",
@@ -575,8 +619,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 380,
         "reviewCount": 380,
         "badge": "Child Shutter",
-        "image_url": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
         "description": "Dual 6A/16A universal modular socket with integrated child safety shutters and phosphor bronze spring contacts.",
         "specs": {
             "Rating": "6A / 16A Combined Heavy Load",
@@ -587,6 +629,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_universal_socket_20",
+        "image_url": "/products/existing/prod_universal_socket_20.svg",
+        "image": "/products/existing/prod_universal_socket_20.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-SWT-04",
         "name": "Anchor Roma Plus Multi-Country Universal Socket (16A)",
         "category": "Switches & Wiring",
@@ -601,8 +647,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 215,
         "reviewCount": 215,
         "badge": "Multi-Country",
-        "image_url": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
         "description": "Universal pin socket accommodating UK, US, Euro, and Indian plugs with spark-shield internal architecture.",
         "specs": {
             "Rating": "16A 240V AC",
@@ -613,6 +657,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_mcb_19",
+        "image_url": "/products/existing/prod_mcb_19.svg",
+        "image": "/products/existing/prod_mcb_19.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-SWT-05",
         "name": "Havells Euro-II 32A Double Pole C-Curve MCB",
         "category": "Switches & Wiring",
@@ -627,8 +675,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 450,
         "reviewCount": 450,
         "badge": "IS/IEC Certified",
-        "image_url": "https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?w=600&auto=format&fit=crop&q=80",
         "description": "32A Double Pole miniature circuit breaker with 10kA breaking capacity, bi-metallic overload strip, and rapid arc extinction chamber.",
         "specs": {
             "Poles": "Double Pole (DP)",
@@ -639,6 +685,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_dist_board_21",
+        "image_url": "/products/existing/prod_dist_board_21.svg",
+        "image": "/products/existing/prod_dist_board_21.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-SWT-06",
         "name": "Schneider Acti9 8-Way Double Door MCB Distribution Board",
         "category": "Switches & Wiring",
@@ -653,8 +703,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 180,
         "reviewCount": 180,
         "badge": "IP43 Metallic",
-        "image_url": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80",
         "description": "8-way SPN double door distribution board with insulated busbar, neutral link, and earth bar in CRCA sheet steel.",
         "specs": {
             "Ways": "8-Way Single Phase Neutral",
@@ -669,6 +717,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     # ==========================================
     {
         "id": "prod_electric_kettle_08",
+        "image_url": "/products/existing/prod_electric_kettle_08.svg",
+        "image": "/products/existing/prod_electric_kettle_08.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-KIT-01",
         "name": "Prestige 1.5L Stainless Steel Fast-Boil Electric Kettle",
         "category": "Kitchen Appliances",
@@ -683,8 +735,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 310,
         "reviewCount": 310,
         "badge": "Fast Boil",
-        "image_url": "https://images.unsplash.com/photo-1544233726-9f1d2b27be8b?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1544233726-9f1d2b27be8b?w=600&auto=format&fit=crop&q=80",
         "description": "1500W rapid boil electric kettle with automatic shut-off, boil-dry protection, 360-degree swivel base, and food-grade 304 steel.",
         "specs": {
             "Capacity": "1.5 Liters",
@@ -696,6 +746,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_mixer_grinder_09",
+        "image_url": "/products/existing/prod_mixer_grinder_09.svg",
+        "image": "/products/existing/prod_mixer_grinder_09.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-KIT-02",
         "name": "Philips HL7756 750W Heavy-Duty Mixer Grinder (3 Jars)",
         "category": "Kitchen Appliances",
@@ -710,8 +764,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 890,
         "reviewCount": 890,
         "badge": "Heavy Duty 750W",
-        "image_url": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=600&auto=format&fit=crop&q=80",
         "description": "Turbo 750W motor with advanced air ventilation to grind toughest spices in 2 minutes. Includes 3 stainless steel leak-proof jars.",
         "specs": {
             "Motor Power": "750W Turbo",
@@ -722,6 +774,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_induction_stove_10",
+        "image_url": "/products/existing/prod_induction_stove_10.svg",
+        "image": "/products/existing/prod_induction_stove_10.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-KIT-03",
         "name": "Pigeon Cruise 2100W Digital Induction Cooktop",
         "category": "Kitchen Appliances",
@@ -736,8 +792,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 415,
         "reviewCount": 415,
         "badge": "Digital Touch",
-        "image_url": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80",
         "description": "7 preset Indian cooking menus, soft push button control, dual heat sensor, and LED display for high-efficiency energy-saving cooking.",
         "specs": {
             "Power": "2100W",
@@ -748,6 +802,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_toaster_22",
+        "image_url": "/products/existing/prod_toaster_22.svg",
+        "image": "/products/existing/prod_toaster_22.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-KIT-04",
         "name": "Morphy Richards 2-Slice Pop-Up Auto-Eject Toaster 800W",
         "category": "Kitchen Appliances",
@@ -762,8 +820,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 210,
         "reviewCount": 210,
         "badge": "Auto-Centering",
-        "image_url": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=600&auto=format&fit=crop&q=80",
         "description": "7 browning levels, defrost and reheat functions, removable crumb tray, and cool-touch body.",
         "specs": {
             "Power": "800W",
@@ -778,6 +834,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     # ==========================================
     {
         "id": "prod_inverter_21",
+        "image_url": "/products/existing/prod_inverter_21.svg",
+        "image": "/products/existing/prod_inverter_21.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-INV-01",
         "name": "Luminous Zelio+ 1700 Pure Sinewave Smart Home Inverter",
         "category": "Inverters & Heavy Power",
@@ -792,8 +852,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 560,
         "reviewCount": 560,
         "badge": "Pure Sine Wave",
-        "image_url": "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600&auto=format&fit=crop&q=80",
         "description": "1500VA / 24V Pure Sinewave smart home inverter system with intelligent 32-bit DSP processor and digital LCD backup time indicator.",
         "specs": {
             "Capacity": "1500VA / 1260W Output",
@@ -804,6 +862,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_inverter_battery_23",
+        "image_url": "/products/existing/prod_inverter_battery_23.svg",
+        "image": "/products/existing/prod_inverter_battery_23.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-INV-02",
         "name": "Exide Tubeler Plus 150Ah Heavy-Duty Tall Tubular Battery",
         "category": "Inverters & Heavy Power",
@@ -818,8 +880,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 480,
         "reviewCount": 480,
         "badge": "60 Months Warranty",
-        "image_url": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80",
         "description": "150Ah tall tubular inverter battery with high acid volume and spine alloy technology for prolonged power cuts.",
         "specs": {
             "Capacity": "150Ah / 12V",
@@ -830,6 +890,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_ups_24",
+        "image_url": "/products/existing/prod_ups_24.svg",
+        "image": "/products/existing/prod_ups_24.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-INV-03",
         "name": "APC Back-UPS 1100VA 230V Line Interactive UPS",
         "category": "Inverters & Heavy Power",
@@ -844,8 +908,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 390,
         "reviewCount": 390,
         "badge": "Automatic Voltage Reg",
-        "image_url": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
         "description": "1100VA / 660W line interactive battery backup UPS for desktop computers, gaming rigs, WiFi routers, and home entertainment.",
         "specs": {
             "Capacity": "1100VA / 660W",
@@ -856,6 +918,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_stabilizer_25",
+        "image_url": "/products/existing/prod_stabilizer_25.svg",
+        "image": "/products/existing/prod_stabilizer_25.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-INV-04",
         "name": "V-Guard VG 400 Voltage Stabilizer for 1.5 Ton AC",
         "category": "Inverters & Heavy Power",
@@ -870,8 +936,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 420,
         "reviewCount": 420,
         "badge": "AC Protection",
-        "image_url": "https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?w=600&auto=format&fit=crop&q=80",
         "description": "Intelligent digital voltage stabilizer with micro-controlled operation, high/low voltage cut-off, and thermal overload protection.",
         "specs": {
             "Working Range": "170V - 270V",
@@ -882,6 +946,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_industrial_panel_22",
+        "image_url": "/products/existing/prod_industrial_panel_22.svg",
+        "image": "/products/existing/prod_industrial_panel_22.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ELEC-INV-05",
         "name": "Schneider Electric 3-Phase Industrial Distribution Panel 63A",
         "category": "Inverters & Heavy Power",
@@ -896,8 +964,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 92,
         "reviewCount": 92,
         "badge": "Enterprise High Value",
-        "image_url": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80",
         "description": "Heavy industrial grade 3-Phase 415V electrical power distribution board with 63A 4-Pole RCCB, surge protection class II, and IP54 enclosure.",
         "specs": {
             "Voltage": "415V 3-Phase 50Hz",
@@ -913,6 +979,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     # ==========================================
     {
         "id": "prod_laptop_entry_01",
+        "image_url": "/products/existing/prod_laptop_entry_01.svg",
+        "image": "/products/existing/prod_laptop_entry_01.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "LAP-001",
         "name": "Essential 15.6\" HD Everyday Laptop",
         "category": "Laptops & Computers",
@@ -927,8 +997,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 140,
         "reviewCount": 140,
         "badge": "Budget Friendly",
-        "image_url": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80",
         "description": "Lightweight 15.6-inch laptop with Intel Quad Core processor, 8GB DDR4 RAM, 256GB SSD, and all-day 8-hour battery.",
         "specs": {
             "Processor": "Intel N4500 Quad-Core 2.8GHz",
@@ -941,6 +1009,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_laptop_student_02",
+        "image_url": "/products/existing/prod_laptop_student_02.svg",
+        "image": "/products/existing/prod_laptop_student_02.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "LAP-002",
         "name": "ScholarBook 14\" Full HD Student Laptop",
         "category": "Laptops & Computers",
@@ -955,8 +1027,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 280,
         "reviewCount": 280,
         "badge": "Student Special",
-        "image_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop&q=80",
         "description": "14-inch thin & light laptop engineered for students and coding with 12th Gen Core i3, 16GB RAM, 512GB SSD, and backlit keyboard.",
         "specs": {
             "Processor": "Intel Core i3-1215U (6 Cores, up to 4.4GHz)",
@@ -969,6 +1039,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_laptop_business_03",
+        "image_url": "/products/existing/prod_laptop_business_03.svg",
+        "image": "/products/existing/prod_laptop_business_03.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "LAP-003",
         "name": "ThinkPro 14\" Enterprise Business Ultrabook",
         "category": "Laptops & Computers",
@@ -983,8 +1057,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 420,
         "reviewCount": 420,
         "badge": "High Value / Priority",
-        "image_url": "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600&auto=format&fit=crop&q=80",
         "description": "Military-grade certified business ultrabook with Intel Core i7 13th Gen, 16GB LPDDR5, 1TB SSD, Fingerprint & IR Face Recognition, and Thunderbolt 4.",
         "specs": {
             "Processor": "Intel Core i7-1355U (10 Cores, up to 5.0GHz)",
@@ -997,6 +1069,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_laptop_perf_04",
+        "image_url": "/products/existing/prod_laptop_perf_04.svg",
+        "image": "/products/existing/prod_laptop_perf_04.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "LAP-004",
         "name": "Precision Workstation 16\" Studio Creator Laptop",
         "category": "Laptops & Computers",
@@ -1011,8 +1087,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 190,
         "reviewCount": 190,
         "badge": "High Value / Pro Studio",
-        "image_url": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&auto=format&fit=crop&q=80",
         "description": "Engineered for 3D modeling, video editing, and AI workflows. AMD Ryzen 7 7840HS, 32GB DDR5 RAM, 1TB Gen4 SSD, and NVIDIA RTX 4050 6GB GPU.",
         "specs": {
             "Processor": "AMD Ryzen 7 7840HS (8C/16T, up to 5.1GHz)",
@@ -1025,6 +1099,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_laptop_gaming_05",
+        "image_url": "/products/existing/prod_laptop_gaming_05.svg",
+        "image": "/products/existing/prod_laptop_gaming_05.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "LAP-005",
         "name": "Legion Apex 16\" QHD 165Hz Pro Gaming Laptop",
         "category": "Laptops & Computers",
@@ -1039,8 +1117,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 310,
         "reviewCount": 310,
         "badge": "Extreme Gaming",
-        "image_url": "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600&auto=format&fit=crop&q=80",
         "description": "Flagship gaming battle-station powered by Intel Core i9-14900HX, NVIDIA RTX 4070 8GB (140W TGP), 32GB DDR5, Vapor Chamber cooling, and RGB per-key keyboard.",
         "specs": {
             "Processor": "Intel Core i9-14900HX (24 Cores, up to 5.8GHz)",
@@ -1053,6 +1129,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_laptop_prem_06",
+        "image_url": "/products/existing/prod_laptop_prem_06.svg",
+        "image": "/products/existing/prod_laptop_prem_06.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "LAP-006",
         "name": "AeroBook Ultra 14\" 3K OLED Flagship Laptop",
         "category": "Laptops & Computers",
@@ -1067,8 +1147,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 180,
         "reviewCount": 180,
         "badge": "Premium Flagship",
-        "image_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop&q=80",
         "description": "Featherlight 990g carbon-fiber flagship laptop with 3K OLED 120Hz display, Intel Core Ultra 9 with dedicated NPU AI engine, 32GB RAM, and 2TB SSD.",
         "specs": {
             "Processor": "Intel Core Ultra 9 185H with AI NPU",
@@ -1085,6 +1163,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     # ==========================================
     {
         "id": "prod_acc_mouse_01",
+        "image_url": "/products/existing/prod_acc_mouse_01.svg",
+        "image": "/products/existing/prod_acc_mouse_01.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-001",
         "name": "Ergonomic Silent 2.4G + Bluetooth Wireless Mouse",
         "category": "Computer Accessories",
@@ -1099,8 +1181,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 520,
         "reviewCount": 520,
         "badge": "Silent Clicks",
-        "image_url": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80",
         "description": "Dual-mode Bluetooth 5.0 and 2.4GHz wireless mouse with rechargeable battery, silent optical switches, and 2400 DPI precision.",
         "specs": {
             "Connectivity": "Bluetooth 5.0 + 2.4GHz USB Dongle",
@@ -1111,6 +1191,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_mouse_02",
+        "image_url": "/products/existing/prod_acc_mouse_02.svg",
+        "image": "/products/existing/prod_acc_mouse_02.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-002",
         "name": "Precision Optical 6-Button 3200 DPI Wired Mouse",
         "category": "Computer Accessories",
@@ -1125,8 +1209,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 310,
         "reviewCount": 310,
         "badge": "Budget Optical",
-        "image_url": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80",
         "description": "Braided USB wired optical mouse with 6 programmable buttons, ergonomic palm grip, and instant DPI cycling switch.",
         "specs": {
             "Sensor": "Gaming Optical 3200 DPI",
@@ -1137,6 +1219,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_keyboard_03",
+        "image_url": "/products/existing/prod_acc_keyboard_03.svg",
+        "image": "/products/existing/prod_acc_keyboard_03.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-003",
         "name": "Slim Multi-Device Bluetooth & 2.4G Wireless Keyboard",
         "category": "Computer Accessories",
@@ -1151,8 +1237,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 430,
         "reviewCount": 430,
         "badge": "Multi-Device",
-        "image_url": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80",
         "description": "Ultra-thin wireless scissor-switch keyboard pairing seamlessly across 3 devices (Laptop, Tablet, Phone) with unified shortcut keys.",
         "specs": {
             "Layout": "Full Size 104 Keys with NumPad",
@@ -1163,6 +1247,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_keyboard_04",
+        "image_url": "/products/existing/prod_acc_keyboard_04.svg",
+        "image": "/products/existing/prod_acc_keyboard_04.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-004",
         "name": "Tenkeyless RGB Hot-Swappable Mechanical Keyboard",
         "category": "Computer Accessories",
@@ -1177,8 +1265,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 680,
         "reviewCount": 680,
         "badge": "Red Switches",
-        "image_url": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80",
         "description": "87-key TKL mechanical keyboard with pre-lubed Red linear switches, per-key RGB backlighting, sound dampening foam, and detachable Type-C cable.",
         "specs": {
             "Switches": "Linear Red Mechanical (Hot-Swappable)",
@@ -1189,6 +1275,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_cooling_05",
+        "image_url": "/products/existing/prod_acc_cooling_05.svg",
+        "image": "/products/existing/prod_acc_cooling_05.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-005",
         "name": "Dual 140mm Turbo Silent Fan RGB Laptop Cooling Pad",
         "category": "Computer Accessories",
@@ -1203,8 +1293,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 270,
         "reviewCount": 270,
         "badge": "Turbo Cooling",
-        "image_url": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80",
         "description": "High-flow aluminum mesh cooling pad with two 1400 RPM silent fans, 6 adjustable height angles, phone holder, and dual USB passthrough.",
         "specs": {
             "Compatibility": "Fits 12\" to 17.3\" Laptops",
@@ -1215,6 +1303,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_stand_06",
+        "image_url": "/products/existing/prod_acc_stand_06.svg",
+        "image": "/products/existing/prod_acc_stand_06.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-006",
         "name": "Ergonomic Aluminum Folding Multi-Angle Laptop Stand",
         "category": "Computer Accessories",
@@ -1229,8 +1321,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 390,
         "reviewCount": 390,
         "badge": "All Metal CNC",
-        "image_url": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80",
         "description": "Precision sandblasted aircraft aluminum folding laptop stand with anti-slip silicone pads and ventilated hollow cooling design.",
         "specs": {
             "Material": "100% Solid Aluminum Alloy",
@@ -1241,6 +1331,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_charger_07",
+        "image_url": "/products/existing/prod_acc_charger_07.svg",
+        "image": "/products/existing/prod_acc_charger_07.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-007",
         "name": "Universal 100W GaN Type-C Fast Laptop Charger",
         "category": "Computer Accessories",
@@ -1255,8 +1349,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 340,
         "reviewCount": 340,
         "badge": "100W GaN III",
-        "image_url": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&auto=format&fit=crop&q=80",
         "description": "Ultra-compact 100W GaN fast charger with 2x USB-C PD and 1x USB-A QC4+ ports. Simultaneously powers laptops, phones, and tablets.",
         "specs": {
             "Output": "100W Max Power Delivery 3.0",
@@ -1267,6 +1359,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_bag_08",
+        "image_url": "/products/existing/prod_acc_bag_08.svg",
+        "image": "/products/existing/prod_acc_bag_08.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-008",
         "name": "Water-Resistant Anti-Theft 15.6\" Laptop Backpack",
         "category": "Computer Accessories",
@@ -1281,8 +1377,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 280,
         "reviewCount": 280,
         "badge": "Anti-Theft",
-        "image_url": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&auto=format&fit=crop&q=80",
         "description": "High-density waterproof oxford fabric backpack with padded laptop sleeve, external USB charging port, and hidden anti-theft pocket.",
         "specs": {
             "Capacity": "25 Liters / Fits up to 15.6\" Laptops",
@@ -1293,6 +1387,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_usbhub_09",
+        "image_url": "/products/existing/prod_acc_usbhub_09.svg",
+        "image": "/products/existing/prod_acc_usbhub_09.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-009",
         "name": "4-Port USB 3.0 Ultra Slim Aluminum Hub (5Gbps)",
         "category": "Computer Accessories",
@@ -1307,8 +1405,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 310,
         "reviewCount": 310,
         "badge": "5Gbps SuperSpeed",
-        "image_url": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
         "description": "Instant 4-port USB 3.0 expansion with 5Gbps high-speed data transfer and smart over-current protection for flash drives, mice, and keyboards.",
         "specs": {
             "Ports": "4x USB 3.0 Type-A",
@@ -1319,6 +1415,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_webcam_10",
+        "image_url": "/products/existing/prod_acc_webcam_10.svg",
+        "image": "/products/existing/prod_acc_webcam_10.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-010",
         "name": "Pro 1080P Full HD Autofocus Webcam with Privacy Shutter",
         "category": "Computer Accessories",
@@ -1333,8 +1433,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 360,
         "reviewCount": 360,
         "badge": "Full HD 1080P",
-        "image_url": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80",
         "description": "Crisp 1080P 60FPS streaming webcam with dual noise-cancelling microphones, automatic low-light correction, and built-in physical privacy cover.",
         "specs": {
             "Resolution": "1080P Full HD @ 60FPS",
@@ -1345,6 +1443,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_hdd_11",
+        "image_url": "/products/existing/prod_acc_hdd_11.svg",
+        "image": "/products/existing/prod_acc_hdd_11.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-011",
         "name": "2TB Rugged Shock-Resistant USB 3.2 External Hard Drive",
         "category": "Computer Accessories",
@@ -1359,8 +1461,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 410,
         "reviewCount": 410,
         "badge": "Military Shockproof",
-        "image_url": "https://images.unsplash.com/photo-1531492746076-161ca9bcad58?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1531492746076-161ca9bcad58?w=600&auto=format&fit=crop&q=80",
         "description": "Military-grade drop-tested 2TB portable external drive with USB 3.2 Gen 1 interface, automatic hardware encryption, and 3-year data rescue.",
         "specs": {
             "Capacity": "2 TB",
@@ -1371,6 +1471,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_ssd_12",
+        "image_url": "/products/existing/prod_acc_ssd_12.svg",
+        "image": "/products/existing/prod_acc_ssd_12.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-012",
         "name": "1TB NVMe PCIe 4.0 Gen4 M.2 SSD (7000 MB/s)",
         "category": "Computer Accessories",
@@ -1385,8 +1489,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 520,
         "reviewCount": 520,
         "badge": "7000 MB/s Extreme",
-        "image_url": "https://images.unsplash.com/photo-1531492746076-161ca9bcad58?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1531492746076-161ca9bcad58?w=600&auto=format&fit=crop&q=80",
         "description": "Blazing fast PCIe Gen 4x4 M.2 2280 internal solid state drive delivering up to 7000 MB/s read speeds with graphene heat dissipator.",
         "specs": {
             "Capacity": "1 TB",
@@ -1397,6 +1499,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_ram_13",
+        "image_url": "/products/existing/prod_acc_ram_13.svg",
+        "image": "/products/existing/prod_acc_ram_13.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-013",
         "name": "16GB DDR5 5600MHz High-Performance Laptop RAM Module",
         "category": "Computer Accessories",
@@ -1411,8 +1517,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 290,
         "reviewCount": 290,
         "badge": "DDR5 5600MHz",
-        "image_url": "https://images.unsplash.com/photo-1531492746076-161ca9bcad58?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1531492746076-161ca9bcad58?w=600&auto=format&fit=crop&q=80",
         "description": "Next-generation 16GB DDR5 SODIMM laptop memory module running at 5600MHz with on-die ECC for rock-solid stability.",
         "specs": {
             "Capacity": "16 GB Single Module",
@@ -1423,6 +1527,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_monitor_14",
+        "image_url": "/products/existing/prod_acc_monitor_14.svg",
+        "image": "/products/existing/prod_acc_monitor_14.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-014",
         "name": "27-inch 4K UHD IPS Frameless Monitor (USB-C 65W PD)",
         "category": "Computer Accessories",
@@ -1437,8 +1545,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 340,
         "reviewCount": 340,
         "badge": "4K IPS HDR400",
-        "image_url": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600&auto=format&fit=crop&q=80",
         "description": "27-inch 3840x2160 4K UHD IPS professional monitor with 100% sRGB color gamut, HDR400, factory calibration, and single-cable 65W USB-C docking.",
         "specs": {
             "Screen Size": "27 Inch (68.6 cm)",
@@ -1450,6 +1556,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_hdmiadapter_15",
+        "image_url": "/products/existing/prod_acc_hdmiadapter_15.svg",
+        "image": "/products/existing/prod_acc_hdmiadapter_15.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-015",
         "name": "4K 60Hz USB-C to HDMI High-Speed Aluminum Adapter",
         "category": "Computer Accessories",
@@ -1464,8 +1574,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 210,
         "reviewCount": 210,
         "badge": "4K 60Hz Display",
-        "image_url": "https://images.unsplash.com/photo-1541689592655-f5f52825a3b8?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1541689592655-f5f52825a3b8?w=600&auto=format&fit=crop&q=80",
         "description": "Plug-and-play Type-C to HDMI adapter supporting 4K @ 60Hz resolution with gold-plated connectors and space gray aluminum alloy shell.",
         "specs": {
             "Output": "HDMI 2.0 (4K @ 60Hz / 2K @ 144Hz)",
@@ -1476,6 +1584,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_usbchub_16",
+        "image_url": "/products/existing/prod_acc_usbchub_16.svg",
+        "image": "/products/existing/prod_acc_usbchub_16.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-016",
         "name": "8-in-1 Aluminum USB-C Multiport Hub (100W PD + 4K HDMI)",
         "category": "Computer Accessories",
@@ -1490,8 +1602,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 480,
         "reviewCount": 480,
         "badge": "8-in-1 Powerhouse",
-        "image_url": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
         "description": "All-in-one docking dongle featuring 4K HDMI, 100W Power Delivery pass-through, Gigabit Ethernet LAN, 3x USB 3.0 ports, and SD/MicroSD card readers.",
         "specs": {
             "Ports": "1x 4K HDMI, 1x 100W PD, 1x RJ45 Gigabit, 3x USB 3.0, SD + TF",
@@ -1502,6 +1612,10 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
     },
     {
         "id": "prod_acc_dock_17",
+        "image_url": "/products/existing/prod_acc_dock_17.svg",
+        "image": "/products/existing/prod_acc_dock_17.svg",
+        "image_source": "LOCAL",
+        "image_status": "IMAGE_AVAILABLE",
         "productId": "ACC-017",
         "name": "Dual 4K Thunderbolt 4 / USB-C Laptop Docking Station",
         "category": "Computer Accessories",
@@ -1516,8 +1630,6 @@ CATALOG_ITEMS: list[dict[str, Any]] = [
         "reviews_count": 160,
         "reviewCount": 160,
         "badge": "Thunderbolt 4 / 120W",
-        "image_url": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
-        "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
         "description": "Enterprise-grade 14-in-1 Thunderbolt 4 dock driving dual 4K @ 60Hz or single 8K displays with 120W dynamic host charging power supply.",
         "specs": {
             "Displays": "Dual 4K @ 60Hz / Single 8K @ 30Hz",

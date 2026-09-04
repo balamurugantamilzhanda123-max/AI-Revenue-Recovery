@@ -20,6 +20,7 @@ import {
   Package,
 } from "lucide-react";
 import { fetchRecoverySession, retryCustomerPayment } from "../../../../lib/api";
+import ProductImage from "../../../../components/common/ProductImage";
 
 export default function DynamicPaymentRetryPage() {
   const params = useParams();
@@ -332,10 +333,12 @@ export default function DynamicPaymentRetryPage() {
 
             {/* Product Card */}
             <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-4">
-              <img
-                src={sessionData.product?.image_url || "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80"}
-                alt={displayProductName}
-                className="w-16 h-16 object-cover rounded-xl bg-slate-900 border border-slate-800 flex-shrink-0"
+              <ProductImage
+                productId={sessionData.product?.id}
+                productName={displayProductName}
+                category={sessionData.product?.category}
+                src={sessionData.product?.image_url || sessionData.product?.image}
+                className="w-16 h-16 flex-shrink-0 p-1 rounded-xl"
               />
               <div className="flex-1 min-w-0">
                 <h3 className="text-xs font-bold text-white truncate">{displayProductName}</h3>

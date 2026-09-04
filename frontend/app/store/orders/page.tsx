@@ -20,6 +20,7 @@ import {
   Search,
 } from "lucide-react";
 import { fetchCustomerOrders, CustomerOrderData, CustomerProfile } from "../../../lib/api";
+import ProductImage from "../../../components/common/ProductImage";
 
 export default function CustomerOrdersPage() {
   const router = useRouter();
@@ -200,10 +201,11 @@ export default function CustomerOrdersPage() {
 
                   <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
-                      <img
+                      <ProductImage
+                        productName={order.product_name}
+                        category={order.category}
                         src={order.image_url}
-                        alt={order.product_name}
-                        className="w-14 h-14 object-cover rounded-xl bg-slate-950 border border-slate-800 flex-shrink-0"
+                        className="w-14 h-14 flex-shrink-0 p-1 rounded-xl"
                       />
                       <div>
                         <h4 className="text-xs font-bold text-white">{order.product_name}</h4>

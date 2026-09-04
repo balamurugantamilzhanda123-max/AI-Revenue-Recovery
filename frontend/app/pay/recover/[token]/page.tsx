@@ -18,6 +18,7 @@ import {
   Package,
 } from "lucide-react";
 import { fetchRecoverySession, retryCustomerPayment } from "../../../../lib/api";
+import ProductImage from "../../../../components/common/ProductImage";
 
 export default function CustomerPaymentRecoveryPage() {
   const params = useParams();
@@ -334,13 +335,13 @@ export default function CustomerPaymentRecoveryPage() {
 
             {/* Product Card */}
             <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-4">
-              <div className="w-20 h-20 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 p-1 border border-slate-800">
-                <img
-                  src={sessionData.product?.image_url || "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80"}
-                  alt={displayProductName}
-                  className="w-full h-full object-cover rounded-lg"
-                />
-              </div>
+              <ProductImage
+                productId={sessionData.product?.id}
+                productName={displayProductName}
+                category={sessionData.product?.category}
+                src={sessionData.product?.image_url || sessionData.product?.image}
+                className="w-20 h-20 rounded-xl flex-shrink-0 p-1"
+              />
 
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] font-mono text-amber-400 uppercase font-bold">

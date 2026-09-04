@@ -39,6 +39,7 @@ import {
   ElectricalProduct,
   CustomerProfile,
 } from "../../../lib/api";
+import ProductImage from "../../../components/common/ProductImage";
 
 type CheckoutStep = "AUTH" | "ADDRESS" | "SUMMARY" | "PAYMENT" | "SUCCESS" | "FAILURE";
 
@@ -766,10 +767,14 @@ export default function CustomerCheckoutPage() {
               <div className="space-y-3">
                 {items.map((item) => (
                   <div key={item.product.id} className="flex items-center gap-3">
-                    <img
+                    <ProductImage
+                      productId={item.product.id}
+                      productName={item.product.name}
+                      category={item.product.category}
                       src={item.product.image_url || item.product.image}
-                      alt={item.product.name}
-                      className="w-12 h-12 object-cover rounded-lg bg-slate-950 border border-slate-800"
+                      imageSource={item.product.image_source}
+                      imageStatus={item.product.image_status}
+                      className="w-12 h-12 flex-shrink-0 p-1 rounded-lg"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-white truncate">{item.product.name}</p>

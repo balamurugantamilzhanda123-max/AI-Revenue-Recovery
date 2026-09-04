@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="60%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#020617" />
+    </radialGradient>
+    <linearGradient id="bulbDomeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="50%" stop-color="#F8FAFC" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+    <linearGradient id="heatsinkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E2E8F0" />
+      <stop offset="50%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#CBD5E1" />
+    </linearGradient>
+    <linearGradient id="metallicCapGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#94A3B8" />
+      <stop offset="50%" stop-color="#F1F5F9" />
+      <stop offset="100%" stop-color="#64748B" />
+    </linearGradient>
+    <linearGradient id="tubeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+    <linearGradient id="fanBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="50%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="bladeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#64748B" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+    <linearGradient id="laptopScreenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="50%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="laptopBaseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="50%" stop-color="#64748B" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+    <linearGradient id="cableGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#93C5FD" />
+    </linearGradient>
+    <linearGradient id="cableGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93C5FD" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+    <linearGradient id="plateGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F1F5F9" />
+    </linearGradient>
+    <linearGradient id="rockerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+    <linearGradient id="kettleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#94A3B8" />
+      <stop offset="35%" stop-color="#FFFFFF" />
+      <stop offset="70%" stop-color="#CBD5E1" />
+      <stop offset="100%" stop-color="#64748B" />
+    </linearGradient>
+    <linearGradient id="inverterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="50%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="accGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="50%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+  </defs>
+
+  <rect width="500" height="500" rx="28" fill="url(#bgGrad)" />
+  <ellipse cx="250" cy="420" rx="160" ry="30" fill="#000000" opacity="0.45" filter="blur(14px)" />
+
+  <g opacity="0.06">
+    <line x1="50" y1="0" x2="50" y2="500" stroke="#FFFFFF" stroke-dasharray="4,4" />
+    <line x1="150" y1="0" x2="150" y2="500" stroke="#FFFFFF" stroke-dasharray="4,4" />
+    <line x1="250" y1="0" x2="250" y2="500" stroke="#FFFFFF" stroke-dasharray="4,4" />
+    <line x1="350" y1="0" x2="350" y2="500" stroke="#FFFFFF" stroke-dasharray="4,4" />
+    <line x1="450" y1="0" x2="450" y2="500" stroke="#FFFFFF" stroke-dasharray="4,4" />
+    <line x1="0" y1="100" x2="500" y2="100" stroke="#FFFFFF" stroke-dasharray="4,4" />
+    <line x1="0" y1="200" x2="500" y2="200" stroke="#FFFFFF" stroke-dasharray="4,4" />
+    <line x1="0" y1="300" x2="500" y2="300" stroke="#FFFFFF" stroke-dasharray="4,4" />
+    <line x1="0" y1="400" x2="500" y2="400" stroke="#FFFFFF" stroke-dasharray="4,4" />
+  </g>
+
+  
+        <ellipse cx="250" cy="240" rx="140" ry="80" fill="rgba(59, 130, 246, 0.25)" filter="blur(16px)" />
+        <ellipse cx="250" cy="240" rx="130" ry="70" fill="none" stroke="url(#cableGrad1)" stroke-width="22" />
+        <ellipse cx="250" cy="235" rx="110" ry="58" fill="none" stroke="url(#cableGrad2)" stroke-width="20" />
+        <ellipse cx="250" cy="230" rx="90" ry="46" fill="none" stroke="url(#cableGrad1)" stroke-width="18" />
+        <ellipse cx="250" cy="225" rx="55" ry="28" fill="#1E293B" stroke="#475569" stroke-width="3" />
+        <path d="M 330 190 Q 370 160 390 130" fill="none" stroke="#3B82F6" stroke-width="12" stroke-linecap="round" />
+        <line x1="390" y1="130" x2="410" y2="105" stroke="#F59E0B" stroke-width="6" stroke-linecap="round" />
+        <line x1="390" y1="130" x2="415" y2="115" stroke="#EA580C" stroke-width="5" stroke-linecap="round" />
+        
+
+  <g transform="translate(360, 24)">
+    <rect width="116" height="26" rx="8" fill="#0F172A" stroke="#3B82F6" stroke-width="1" opacity="0.9" />
+    <text x="58" y="17" fill="#3B82F6" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">
+      POWER & CABLES
+    </text>
+  </g>
+
+  <g transform="translate(24, 436)">
+    <rect width="452" height="40" rx="12" fill="#0F172A" stroke="#334155" stroke-width="1.2" opacity="0.95" />
+    <circle cx="20" cy="20" r="6" fill="#3B82F6" />
+    <text x="34" y="24" fill="#F8FAFC" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700">
+      Finolex 2.5 sq mm Flame Retardant C
+    </text>
+  </g>
+</svg>

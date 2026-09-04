@@ -576,23 +576,67 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
 
   // Dashboard Summary & Metrics
   if (pathStr === "dashboard/summary") {
-    return NextResponse.json({
+    const sumObj = {
       total_transactions: 1250,
+      failed_transactions: 84,
+      revenue_at_risk: 485200,
+      total_risk_detected: 485200,
+      recovery_attempts: 72,
+      successful_recoveries: 68,
+      revenue_recovered: 410500,
+      recovery_rate: 84.6,
+      revenue_recovery_rate: 84.6,
+      unresolved_cases: 5,
+      escalated_cases: 3,
+      failure_rate: 6.72,
+      average_recovery_latency_seconds: 42,
       total_volume: 18450000,
       failed_count: 84,
       failed_volume: 1240000,
       recovered_count: 68,
-      recovered_volume: 998000,
-      recovery_rate: 80.95,
+      recovered_volume: 410500,
       active_escalations: 3,
       avg_recovery_time_sec: 42,
-    });
+      generated_at: new Date().toISOString(),
+    };
+    return NextResponse.json(sumObj);
   }
 
   if (pathStr === "dashboard/recovery-metrics") {
+    const sumObj = {
+      total_transactions: 1250,
+      failed_transactions: 84,
+      revenue_at_risk: 485200,
+      total_risk_detected: 485200,
+      recovery_attempts: 72,
+      successful_recoveries: 68,
+      revenue_recovered: 410500,
+      recovery_rate: 84.6,
+      revenue_recovery_rate: 84.6,
+      unresolved_cases: 5,
+      escalated_cases: 3,
+      failure_rate: 6.72,
+      average_recovery_latency_seconds: 42,
+      total_volume: 18450000,
+      failed_count: 84,
+      failed_volume: 1240000,
+      recovered_count: 68,
+      recovered_volume: 410500,
+      active_escalations: 3,
+      avg_recovery_time_sec: 42,
+      generated_at: new Date().toISOString(),
+    };
     return NextResponse.json({
-      total_recovered_amount: 998000,
-      recovery_rate_percentage: 80.95,
+      summary: sumObj,
+      case_status_counts: {
+        RECOVERED: 68,
+        OPEN: 11,
+        IN_PROGRESS: 5,
+        ESCALATED: 3,
+        FAILED: 2,
+      },
+      total_recovered_amount: 410500,
+      recovery_rate_percentage: 84.6,
       avg_recovery_latency_sec: 42,
       prevented_churn_count: 68,
       smart_retry_success_rate: 76.4,
@@ -602,38 +646,67 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
 
   // Transactions list
   if (pathStr === "transactions") {
+    const txList = [
+      {
+        id: "txn_demo_1",
+        transaction_id: "TXN-8812-BLR",
+        customer_id: "cust_rohan",
+        customer: {
+          id: "cust_rohan",
+          name: "Rohan Verma",
+          email: "rohan.v@techcorp.in",
+          phone: "+91 98450 11223",
+          status: "ACTIVE",
+        },
+        order_id: "ORD-8812-BLR",
+        amount: 65999,
+        currency: "INR",
+        status: "FAILED",
+        payment_method: "CARD",
+        failure_reason: "BANK_NETWORK_TIMEOUT",
+        gateway_response: "Acquiring gateway connection dropped during 3DS auth handshake",
+        retry_count: 1,
+        recovery_status: "IN_PROGRESS",
+        recovered_amount: 0,
+        escalation_status: "OPEN",
+        created_at: new Date(Date.now() - 1800000).toISOString(),
+      },
+      {
+        id: "txn_demo_2",
+        transaction_id: "TXN-8813-CHN",
+        customer_id: "cust_priya",
+        customer: {
+          id: "cust_priya",
+          name: "Priya Sundaram",
+          email: "priya.sundaram@gmail.com",
+          phone: "+91 94440 33445",
+          status: "ACTIVE",
+        },
+        order_id: "ORD-8813-CHN",
+        amount: 6999,
+        currency: "INR",
+        status: "SUCCESS",
+        payment_method: "UPI",
+        failure_reason: null,
+        gateway_response: "Payment captured successfully on customer retry (Sandbox)",
+        retry_count: 1,
+        recovery_status: "RECOVERED",
+        recovered_amount: 6999,
+        escalation_status: "NONE",
+        created_at: new Date(Date.now() - 7200000).toISOString(),
+      },
+    ];
     return NextResponse.json({
-      transactions: [
-        {
-          id: "txn_demo_1",
-          transaction_id: "TXN-8812-BLR",
-          customer_id: "cust_rohan",
-          amount: 65999,
-          currency: "INR",
-          status: "FAILED",
-          payment_method: "CARD",
-          failure_reason: "BANK_NETWORK_TIMEOUT",
-          created_at: new Date(Date.now() - 1800000).toISOString(),
-          recovery_status: "IN_PROGRESS",
-          recovered_amount: 0,
-        },
-        {
-          id: "txn_demo_2",
-          transaction_id: "TXN-8813-CHN",
-          customer_id: "cust_priya",
-          amount: 6999,
-          currency: "INR",
-          status: "SUCCESS",
-          payment_method: "UPI",
-          failure_reason: null,
-          created_at: new Date(Date.now() - 7200000).toISOString(),
-          recovery_status: "RECOVERED",
-          recovered_amount: 6999,
-        },
-      ],
-      total_count: 2,
-      limit: 50,
-      offset: 0,
+      data: txList,
+      transactions: txList,
+      total: txList.length,
+      total_count: txList.length,
+      pagination: {
+        limit: 50,
+        offset: 0,
+        returned: txList.length,
+        next_offset: null,
+      },
     });
   }
 

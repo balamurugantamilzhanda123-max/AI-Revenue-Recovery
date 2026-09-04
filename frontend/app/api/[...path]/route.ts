@@ -274,16 +274,61 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     const txnId = body.transaction_id || "TXN-" + Math.floor(100000 + Math.random() * 900000);
     const recovToken = "recov_" + Math.random().toString(36).substring(2, 10);
 
+    const scenario = body.simulation_scenario || "NETWORK_ERROR";
+    const failureReasonMap: Record<string, { reason: string; msg: string; risk: string }> = {
+      NETWORK_ERROR: {
+        reason: "Network Error: Connection Reset During Payment (TCP RST)",
+        msg: "Your payment could not be completed due to a temporary network connection drop (TCP RST). Your order is preserved.",
+        risk: "HIGH",
+      },
+      PAYMENT_TIMEOUT: {
+        reason: "Payment Gateway Timeout (HTTP 504 Gateway Timeout)",
+        msg: "The bank gateway timed out while processing your payment token (504 Gateway). Your order is preserved.",
+        risk: "HIGH",
+      },
+      TIMEOUT: {
+        reason: "Payment Gateway Timeout (HTTP 504 Gateway Timeout)",
+        msg: "The bank gateway timed out while processing your payment token (504 Gateway). Your order is preserved.",
+        risk: "HIGH",
+      },
+      AUTHENTICATION_FAILED: {
+        reason: "Authentication Handshake Failure (OTP Timeout / 3DS Error)",
+        msg: "Authentication handshake failed (OTP Timeout / 3DS verification). Your order is preserved.",
+        risk: "MEDIUM",
+      },
+      AUTH_FAILURE: {
+        reason: "Authentication Handshake Failure (OTP Timeout / 3DS Error)",
+        msg: "Authentication handshake failed (OTP Timeout / 3DS verification). Your order is preserved.",
+        risk: "MEDIUM",
+      },
+      PAYMENT_FAILED: {
+        reason: "Issuer Bank Decline (Do Not Honor)",
+        msg: "Your bank declined the transaction. Your order is preserved.",
+        risk: "HIGH",
+      },
+    };
+
+    const details = failureReasonMap[scenario] || failureReasonMap.NETWORK_ERROR;
+
     return NextResponse.json({
       success: isSuccess,
+      status: isSuccess ? "SUCCESS" : "FAILED",
       order_id: orderId,
       transaction_id: txnId,
       payment_status: isSuccess ? "SUCCESS" : "FAILED",
       order_status: isSuccess ? "CONFIRMED" : "PAYMENT_FAILED",
-      failure_reason: isSuccess ? null : body.simulation_scenario || "PAYMENT_TIMEOUT",
-      is_network_error: !isSuccess && (body.simulation_scenario === "NETWORK_ERROR" || body.simulation_scenario === "TIMEOUT"),
+      failure_reason: isSuccess ? null : details.reason,
+      is_network_error: !isSuccess && (scenario === "NETWORK_ERROR" || scenario === "PAYMENT_TIMEOUT" || scenario === "TIMEOUT"),
+      customer_message: isSuccess
+        ? "Payment verified and order placed successfully!"
+        : details.msg,
+      automated_message_preview: isSuccess
+        ? ""
+        : `Hi ${body.customer?.name || "Valued Customer"},\n\nYour payment for ${body.product_id || "your order"} could not be completed due to a temporary issue (${details.reason}).\n\nYour order is preserved.\nPlease complete your payment using the secure payment link below:\n\n/payment/retry/${recovToken}`,
+      risk_level: details.risk,
       recovery_token: recovToken,
-      retry_link: `/pay/recover/${recovToken}`,
+      payment_link: `/payment/retry/${recovToken}`,
+      retry_link: `/payment/retry/${recovToken}`,
       message: isSuccess
         ? "Payment verified and order placed successfully!"
         : "Payment attempt failed. Autonomous ReviveAI Recovery initialized.",

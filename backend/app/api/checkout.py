@@ -69,7 +69,7 @@ class CustomerRegisterRequest(BaseModel):
     email: str = Field(...)
     phone: str = Field(..., min_length=10)
     password: str = Field(..., min_length=4)
-    confirm_password: str = Field(..., min_length=4)
+    confirm_password: str | None = None
 
 
 class CustomerLoginRequest(BaseModel):

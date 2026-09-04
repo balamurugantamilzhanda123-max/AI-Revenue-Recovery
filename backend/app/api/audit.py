@@ -12,26 +12,6 @@ from app.services.transaction_service import get_transaction_or_404
 router = APIRouter(tags=["Audit"])
 
 
-@router.get("/audit/{transaction_id}")
-def get_transaction_audit(
-    transaction_id: str,
-    db: Session = Depends(get_db),
-    _current_user=Depends(get_current_user),
-) -> dict:
-    transaction = get_transaction_or_404(db, transaction_id)
-    logs = db.scalars(
-        select(AuditLog)
-        .where(AuditLog.transaction_id == transaction.id)
-        .order_by(AuditLog.created_at.asc())
-    ).all()
-    events = [audit_log_dict(log) for log in logs]
-    return {
-        "transaction_id": transaction.transaction_id,
-        "events": events,
-        "count": len(events),
-    }
-
-
 @router.get("/audit")
 def get_audit_logs(
     transaction_id: str | None = None,
@@ -62,4 +42,24 @@ def get_audit_logs(
             "returned": len(logs),
             "next_offset": offset + limit if len(logs) == limit else None,
         },
+    }
+
+
+@router.get("/audit/{transaction_id}")
+def get_transaction_audit(
+    transaction_id: str,
+    db: Session = Depends(get_db),
+    _current_user=Depends(get_current_user),
+) -> dict:
+    transaction = get_transaction_or_404(db, transaction_id)
+    logs = db.scalars(
+        select(AuditLog)
+        .where(AuditLog.transaction_id == transaction.id)
+        .order_by(AuditLog.created_at.asc())
+    ).all()
+    events = [audit_log_dict(log) for log in logs]
+    return {
+        "transaction_id": transaction.transaction_id,
+        "events": events,
+        "count": len(events),
     }

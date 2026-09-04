@@ -21,6 +21,17 @@ class Settings(BaseSettings):
     payment_test_api_key: str | None = None
     payment_test_secret: str | None = None
 
+    # Razorpay Gateway
+    razorpay_key_id: str | None = "rzp_test_voltstore_mock"
+    razorpay_key_secret: str | None = "voltstore_secret_mock_key"
+    razorpay_webhook_secret: str | None = "voltstore_webhook_secret_mock"
+    payment_gateway_mode: str = "TEST"
+
+    # Transactional Email (Resend)
+    resend_api_key: str | None = None
+    email_from: str = "VoltStore <orders@resend.dev>"
+    app_url: str = "http://localhost:3000"
+
     next_public_api_url: str = "http://localhost:8000"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 

@@ -24,6 +24,7 @@ from app.api.recovery import router as recovery_router
 from app.api.revenue_risk import router as revenue_risk_router
 from app.api.seller import router as seller_router
 from app.api.transactions import router as transactions_router
+from app.api.webhooks import router as webhooks_router
 from app.config import settings
 from app.database import init_db
 
@@ -100,6 +101,7 @@ def create_app() -> FastAPI:
     app.include_router(checkout_router, prefix="/api")
     app.include_router(seller_router, prefix="/api")
     app.include_router(human_associate_router, prefix="/api")
+    app.include_router(webhooks_router)
 
     @app.get("/")
     def root() -> dict:

@@ -9,6 +9,9 @@ from app.models.transaction import (
     EscalationCase,
     EscalationStatus,
     IdempotencyKey,
+    Invoice,
+    NotificationRecord,
+    Order,
     PaymentAttempt,
     PaymentStatus,
     PolicyResult,
@@ -19,6 +22,7 @@ from app.models.transaction import (
     RecoveryStatus,
     RootCause,
     Transaction,
+    WebhookEvent,
 )
 
 __all__ = [
@@ -32,6 +36,9 @@ __all__ = [
     "EscalationCase",
     "EscalationStatus",
     "IdempotencyKey",
+    "Invoice",
+    "NotificationRecord",
+    "Order",
     "PaymentAttempt",
     "PaymentStatus",
     "PolicyResult",
@@ -42,4 +49,6 @@ __all__ = [
     "RecoveryStatus",
     "RootCause",
     "Transaction",
+    "WebhookEvent",
 ]
+

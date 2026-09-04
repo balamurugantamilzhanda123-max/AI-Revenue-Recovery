@@ -497,3 +497,122 @@ class CustomerAddress(Base):
         onupdate=func.now(),
     )
 
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=uuid_string)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("customers.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    transaction_id: Mapped[str | None] = mapped_column(
+        ForeignKey("transactions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    razorpay_order_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    razorpay_payment_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    razorpay_signature: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    
+    product_id: Mapped[str] = mapped_column(String(80), nullable=False)
+    product_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    category: Mapped[str] = mapped_column(String(100), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    delivery_charge: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
+    discount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(10), nullable=False, default="INR")
+    
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="PENDING_PAYMENT",
+        index=True,
+    )
+    delivery_address: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class WebhookEvent(Base):
+    __tablename__ = "webhook_events"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=uuid_string)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, default="RAZORPAY")
+    event_id: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="PROCESSED")
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class NotificationRecord(Base):
+    __tablename__ = "notification_records"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=uuid_string)
+    customer_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    order_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    channel: Mapped[str] = mapped_column(String(20), nullable=False, default="EMAIL")
+    notification_type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    recipient: Mapped[str] = mapped_column(String(255), nullable=False)
+    subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="PENDING")
+    provider_message_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=uuid_string)
+    invoice_number: Mapped[str] = mapped_column(String(60), unique=True, nullable=False, index=True)
+    order_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    transaction_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    customer_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    customer_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    customer_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    customer_phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    billing_address: Mapped[str] = mapped_column(Text, nullable=False)
+    shipping_address: Mapped[str] = mapped_column(Text, nullable=False)
+    items: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    discount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
+    delivery_charge: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(10), nullable=False, default="INR")
+    payment_status: Mapped[str] = mapped_column(String(30), nullable=False, default="PAID")
+    payment_reference: Mapped[str] = mapped_column(String(120), nullable=False)
+    pdf_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+

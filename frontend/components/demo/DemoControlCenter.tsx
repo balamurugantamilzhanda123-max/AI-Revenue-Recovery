@@ -195,6 +195,47 @@ export default function DemoControlCenter({
           </div>
         </div>
 
+        {/* Real-World Business Use Case Hub */}
+        <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
+              ⚡ Electrical Store & Seller Recovery System
+            </span>
+            <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
+              3 Actors Active
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+            <Link
+              href="/store"
+              onClick={onClose}
+              className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 flex flex-col justify-between transition-all group"
+            >
+              <span className="text-xs font-bold text-amber-300 font-mono">1. Customer Store</span>
+              <span className="text-[10px] text-slate-400 font-mono mt-1">Shop 22+ SKUs, Cart & Checkout simulator</span>
+            </Link>
+
+            <Link
+              href="/seller"
+              onClick={onClose}
+              className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 flex flex-col justify-between transition-all group"
+            >
+              <span className="text-xs font-bold text-emerald-300 font-mono">2. Seller Dashboard</span>
+              <span className="text-[10px] text-slate-400 font-mono mt-1">Network errors, loss by SKU & Funnel</span>
+            </Link>
+
+            <Link
+              href="/human-associate"
+              onClick={onClose}
+              className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 flex flex-col justify-between transition-all group"
+            >
+              <span className="text-xs font-bold text-purple-300 font-mono">3. Human Associate</span>
+              <span className="text-[10px] text-slate-400 font-mono mt-1">Review cases, contact customer & resolve</span>
+            </Link>
+          </div>
+        </div>
+
         {/* Live Feedback Banner */}
         {resultMessage && (
           <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs font-mono text-emerald-800 flex items-center gap-2 animate-in fade-in">

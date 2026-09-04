@@ -12,6 +12,9 @@ import {
   UserCheck,
   ShieldCheck,
   Zap,
+  ShoppingBag,
+  Store,
+  Headset,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -19,6 +22,27 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
+  {
+    name: "Electrical Store",
+    href: "/store",
+    icon: ShoppingBag,
+    badge: "Shop",
+    badgeColor: "bg-amber-50 text-amber-600 border-amber-200",
+  },
+  {
+    name: "Seller Dashboard",
+    href: "/seller",
+    icon: Store,
+    badge: "Seller",
+    badgeColor: "bg-emerald-50 text-emerald-600 border-emerald-200",
+  },
+  {
+    name: "Human Associate",
+    href: "/human-associate",
+    icon: Headset,
+    badge: "Agent",
+    badgeColor: "bg-purple-50 text-purple-600 border-purple-200",
+  },
   {
     name: "Overview",
     href: "/",

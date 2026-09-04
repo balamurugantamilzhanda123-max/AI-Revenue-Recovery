@@ -233,3 +233,313 @@ export async function runRetryFailureDemo(): Promise<any> {
 export async function checkBackendHealth(): Promise<{ status: string }> {
   return request("/api/health");
 }
+
+// ==========================================
+// Electrical Store & Customer Checkout
+// ==========================================
+
+export interface ElectricalProduct {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  currency: string;
+  stock: number;
+  in_stock: boolean;
+  rating: number;
+  reviews_count: number;
+  badge?: string;
+  image_url: string;
+  description: string;
+  specs?: Record<string, string>;
+}
+
+export async function fetchElectricalProducts(params?: {
+  category?: string;
+  search?: string;
+}): Promise<{ data: ElectricalProduct[]; count: number }> {
+  const query = new URLSearchParams();
+  if (params?.category) query.set("category", params.category);
+  if (params?.search) query.set("search", params.search);
+  const qs = query.toString();
+  return request<{ data: ElectricalProduct[]; count: number }>(`/api/checkout/products${qs ? `?${qs}` : ""}`);
+}
+
+export async function fetchElectricalProductDetail(productId: string): Promise<{ data: ElectricalProduct }> {
+  return request<{ data: ElectricalProduct }>(`/api/checkout/products/${encodeURIComponent(productId)}`);
+}
+
+export async function initiateCheckoutSession(payload: {
+  product_id: string;
+  quantity: number;
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
+}): Promise<any> {
+  return request("/api/checkout/initiate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function processCustomerPayment(payload: {
+  order_id?: string;
+  transaction_id?: string;
+  product_id: string;
+  quantity: number;
+  amount: number;
+  currency?: string;
+  payment_method: string;
+  customer: {
+    name: string;
+    email: string;
+    phone?: string;
+    address?: string;
+  };
+  simulation_scenario: "SUCCESS" | "NETWORK_ERROR" | "TIMEOUT" | "AUTH_FAILURE" | "DECLINE";
+}): Promise<any> {
+  return request("/api/checkout/process-payment", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function abandonCustomerCheckout(payload: {
+  product_id: string;
+  quantity: number;
+  amount: number;
+  currency?: string;
+  last_stage: string;
+  customer: {
+    name: string;
+    email: string;
+    phone?: string;
+  };
+}): Promise<any> {
+  return request("/api/checkout/abandon", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchRecoverySession(token: string): Promise<any> {
+  return request(`/api/checkout/recover/${encodeURIComponent(token)}`);
+}
+
+export async function retryCustomerPayment(payload: {
+  transaction_id: string;
+  order_id?: string;
+  token?: string;
+  retry_outcome: "SUCCESS" | "FAILED";
+}): Promise<any> {
+  return request("/api/checkout/retry-payment", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ==========================================
+// Seller Dashboard & Analytics
+// ==========================================
+
+export interface SellerDashboardSummary {
+  total_orders: number;
+  successful_orders: number;
+  failed_orders: number;
+  pending_orders: number;
+  checkout_abandonments: number;
+  network_errors: number;
+  payment_failures: number;
+  failure_breakdown: {
+    network_errors: number;
+    timeouts: number;
+    bank_declines: number;
+    auth_failures: number;
+    abandonments: number;
+    other: number;
+  };
+  revenue_at_risk: number;
+  revenue_risk_breakdown: {
+    network_errors: number;
+    payment_failures: number;
+    checkout_abandonments: number;
+    human_pending_cases: number;
+  };
+  ai_recovery_cases: number;
+  ai_recovered_revenue: number;
+  human_recovery_cases: number;
+  human_recovered_revenue: number;
+  total_recovered_revenue: number;
+  unresolved_cases: number;
+  unresolved_revenue: number;
+  high_risk_cases: number;
+  recovery_rate: number;
+  funnel: {
+    orders: number;
+    checkout_started: number;
+    payment_initiated: number;
+    payment_failed_or_abandoned: number;
+    revenue_at_risk_detected: number;
+    ai_recovery_triggered: number;
+    customer_retry_executed: number;
+    ai_payment_success: number;
+    escalated_to_human: number;
+    human_payment_success: number;
+  };
+  product_revenue_loss: Array<{
+    product_id: string;
+    product_name: string;
+    category: string;
+    unit_price: number;
+    orders_count: number;
+    successful_orders: number;
+    failed_orders: number;
+    network_errors: number;
+    checkout_abandonments: number;
+    revenue_at_risk: number;
+    recovered_revenue: number;
+    recovery_rate: number;
+  }>;
+  generated_at: string;
+}
+
+export interface SellerCase {
+  order_id: string;
+  transaction_id: string;
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  product_id: string;
+  product_name: string;
+  category: string;
+  amount: number;
+  currency: string;
+  payment_status: string;
+  failure_reason: string;
+  is_network_error: boolean;
+  attempts: number;
+  risk: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  revenue_at_risk: number;
+  ai_status: string;
+  human_status: string;
+  recovery_status: string;
+  recovery_token: string;
+  created_at: string;
+}
+
+export async function fetchSellerDashboard(): Promise<SellerDashboardSummary> {
+  return request<SellerDashboardSummary>("/api/seller/dashboard");
+}
+
+export async function fetchSellerCases(params?: {
+  filter?: string;
+  product_id?: string;
+  risk?: string;
+  status?: string;
+  search?: string;
+}): Promise<SellerCase[]> {
+  const query = new URLSearchParams();
+  if (params?.filter) query.set("filter", params.filter);
+  if (params?.product_id) query.set("product_id", params.product_id);
+  if (params?.risk) query.set("risk", params.risk);
+  if (params?.status) query.set("status", params.status);
+  if (params?.search) query.set("search", params.search);
+  const qs = query.toString();
+  return request<SellerCase[]>(`/api/seller/cases${qs ? `?${qs}` : ""}`);
+}
+
+// ==========================================
+// Human Associate Workspace
+// ==========================================
+
+export interface HumanCase {
+  case_id: string;
+  order_id: string;
+  transaction_id: string;
+  customer: {
+    id?: string;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  product: {
+    id: string;
+    name: string;
+    category: string;
+  };
+  amount: number;
+  currency: string;
+  payment_attempts_count: number;
+  payment_attempts: Array<{
+    attempt_number: number;
+    status: string;
+    gateway_response: string;
+    created_at: string;
+  }>;
+  failure_reason: string;
+  is_network_error: boolean;
+  ai_diagnosis: string;
+  ai_recommendation: string;
+  priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  risk_level: string;
+  revenue_at_risk: number;
+  case_status: "OPEN" | "IN_REVIEW" | "RESOLVED";
+  created_at: string;
+  resolved_at?: string | null;
+  action_history: Array<Record<string, any>>;
+  recovery_token: string;
+}
+
+export async function fetchHumanCases(params?: {
+  status?: string;
+  priority?: string;
+}): Promise<HumanCase[]> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set("status", params.status);
+  if (params?.priority) query.set("priority", params.priority);
+  const qs = query.toString();
+  return request<HumanCase[]>(`/api/human-associate/cases${qs ? `?${qs}` : ""}`);
+}
+
+export async function contactCustomerHuman(
+  caseId: string,
+  payload: {
+    channel: "PHONE" | "WHATSAPP" | "EMAIL";
+    notes: string;
+    agent_name?: string;
+  }
+): Promise<any> {
+  return request(`/api/human-associate/cases/${encodeURIComponent(caseId)}/contact`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function sendHumanPaymentLink(
+  caseId: string,
+  payload: {
+    custom_message?: string;
+    discount_percent?: number;
+    agent_name?: string;
+  }
+): Promise<any> {
+  return request(`/api/human-associate/cases/${encodeURIComponent(caseId)}/send-link`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function completeHumanPayment(
+  caseId: string,
+  payload?: { notes?: string }
+): Promise<any> {
+  return request(`/api/human-associate/cases/${encodeURIComponent(caseId)}/complete-payment`, {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}

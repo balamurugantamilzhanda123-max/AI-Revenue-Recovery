@@ -5,13 +5,16 @@ from fastapi.responses import JSONResponse
 
 from app.api.agent import router as agent_router
 from app.api.audit import router as audit_router
+from app.api.checkout import router as checkout_router
 from app.api.dashboard import router as dashboard_router
 from app.api.demo import router as demo_router
 from app.api.escalations import router as escalations_router
 from app.api.health import router as health_router
+from app.api.human_associate import router as human_associate_router
 from app.api.payments import router as payments_router
 from app.api.recovery import router as recovery_router
 from app.api.revenue_risk import router as revenue_risk_router
+from app.api.seller import router as seller_router
 from app.api.transactions import router as transactions_router
 from app.config import settings
 from app.database import init_db
@@ -86,6 +89,9 @@ def create_app() -> FastAPI:
     app.include_router(dashboard_router, prefix="/api")
     app.include_router(escalations_router, prefix="/api")
     app.include_router(demo_router, prefix="/api")
+    app.include_router(checkout_router, prefix="/api")
+    app.include_router(seller_router, prefix="/api")
+    app.include_router(human_associate_router, prefix="/api")
 
     @app.get("/")
     def root() -> dict:

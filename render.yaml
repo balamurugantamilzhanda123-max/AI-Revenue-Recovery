@@ -2,23 +2,21 @@ services:
   - type: web
     name: reviveai-backend
     env: python
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
       - key: ENVIRONMENT
         value: production
-      - key: DATABASE_URL
-        value: sqlite:///./reviveai_demo.db
       - key: AUTO_CREATE_TABLES
         value: "true"
       - key: CORS_ORIGINS
-        value: "https://reviveai.vercel.app,http://localhost:3000"
-      - key: AI_MOCK_MODE
-        value: "false"
-      - key: AI_MODEL
-        value: gpt-4.1-mini
-      - key: PAYMENT_SANDBOX_MODE
-        value: "true"
+        value: "https://ai-revenue-recovery.vercel.app,https://reviveai.vercel.app,http://localhost:3000"
+      - key: PAYMENT_GATEWAY_MODE
+        value: "TEST"
       - key: MAX_AUTOMATIC_RETRIES
         value: "1"
       - key: MAX_RECOVERY_MESSAGES
@@ -26,16 +24,3 @@ services:
       - key: LOW_CONFIDENCE_THRESHOLD
         value: "0.70"
 
-  - type: web
-    name: reviveai-frontend
-    env: node
-    buildCommand: cd frontend && npm install && npm run build
-    startCommand: cd frontend && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: reviveai-backend
-          property: host

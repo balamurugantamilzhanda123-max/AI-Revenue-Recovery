@@ -711,25 +711,61 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
   }
 
   // Revenue Risk
-  if (pathStr === "revenue-risk" || pathStr === "revenue-risk/summary") {
-    return NextResponse.json({
-      cases: [
-        {
-          case_id: "risk_case_1",
-          transaction_id: "TXN-8812-BLR",
-          amount: 65999,
-          currency: "INR",
-          status: "FAILED",
-          risk_level: "HIGH",
-          failure_category: "NETWORK_TIMEOUT",
-          created_at: new Date(Date.now() - 1800000).toISOString(),
-        },
-      ],
-      summary: {
-        total_at_risk_amount: 485200,
-        high_risk_cases: 3,
-        automated_recovery_eligible: 22,
+  if (pathStr === "revenue-risk") {
+    const riskCases = [
+      {
+        id: "risk_case_1",
+        case_id: "risk_case_1",
+        transaction_id: "TXN-8812-BLR",
+        risk_amount: 65999,
+        amount: 65999,
+        currency: "INR",
+        status: "FAILED",
+        recovery_status: "IN_PROGRESS",
+        action_status: "POLICY_APPROVED",
+        risk_level: "HIGH",
+        root_cause: "payment_timeout",
+        recommended_action: "controlled_retry",
+        recovered_amount: 0,
+        evidence: ["Gateway latency exceeded 30000ms", "3DS auth dropped"],
+        created_at: new Date(Date.now() - 1800000).toISOString(),
       },
+      {
+        id: "risk_case_2",
+        case_id: "risk_case_2",
+        transaction_id: "TXN-8813-CHN",
+        risk_amount: 6999,
+        amount: 6999,
+        currency: "INR",
+        status: "SUCCESS",
+        recovery_status: "RECOVERED",
+        action_status: "EXECUTED",
+        risk_level: "LOW",
+        root_cause: "authentication_failure",
+        recommended_action: "controlled_retry",
+        recovered_amount: 6999,
+        evidence: ["OTP handshake retry succeeded"],
+        created_at: new Date(Date.now() - 7200000).toISOString(),
+      },
+    ];
+    return NextResponse.json(riskCases);
+  }
+
+  if (pathStr === "revenue-risk/summary") {
+    return NextResponse.json({
+      total_transactions: 1250,
+      failed_transactions: 84,
+      revenue_at_risk: 485200,
+      total_risk_detected: 485200,
+      recovery_attempts: 72,
+      successful_recoveries: 68,
+      revenue_recovered: 410500,
+      recovery_rate: 84.6,
+      unresolved_cases: 5,
+      escalated_cases: 3,
+      failure_rate: 6.72,
+      revenue_recovery_rate: 84.6,
+      average_recovery_latency_seconds: 42,
     });
   }
 
@@ -751,26 +787,41 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
 
   // Audit Logs
   if (pathStr.startsWith("audit")) {
+    const evList = [
+      {
+        id: "audit_ev_1",
+        transaction_id: "TXN-8812-BLR",
+        recovery_case_id: "risk_case_1",
+        event_type: "RECOVERY_DISPATCHED",
+        event_message: "Automated payment continuation link sent to customer",
+        actor: "ReviveAI Autonomous Agent",
+        metadata: { channel: "SMS", token: "recov_8812" },
+        created_at: new Date(Date.now() - 1200000).toISOString(),
+        timestamp: new Date(Date.now() - 1200000).toISOString(),
+      },
+      {
+        id: "audit_ev_2",
+        transaction_id: "TXN-8813-CHN",
+        recovery_case_id: "risk_case_2",
+        event_type: "PAYMENT_RECOVERED",
+        event_message: "Payment captured successfully on customer retry (Sandbox)",
+        actor: "Smart Retry Engine",
+        metadata: { amount: 6999, method: "UPI" },
+        created_at: new Date(Date.now() - 7100000).toISOString(),
+        timestamp: new Date(Date.now() - 7100000).toISOString(),
+      },
+    ];
     return NextResponse.json({
-      events: [
-        {
-          id: "audit_ev_1",
-          transaction_id: "TXN-8812-BLR",
-          event_type: "RECOVERY_DISPATCHED",
-          actor: "ReviveAI Autonomous Agent",
-          details: { channel: "SMS", token: "recov_8812" },
-          timestamp: new Date(Date.now() - 1200000).toISOString(),
-        },
-        {
-          id: "audit_ev_2",
-          transaction_id: "TXN-8813-CHN",
-          event_type: "PAYMENT_RECOVERED",
-          actor: "Smart Retry Engine",
-          details: { amount: 6999, method: "UPI" },
-          timestamp: new Date(Date.now() - 7100000).toISOString(),
-        },
-      ],
-      total_count: 2,
+      data: evList,
+      events: evList,
+      count: evList.length,
+      total_count: evList.length,
+      pagination: {
+        limit: 50,
+        offset: 0,
+        returned: evList.length,
+        next_offset: null,
+      },
     });
   }
 

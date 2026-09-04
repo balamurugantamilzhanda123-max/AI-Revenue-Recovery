@@ -13,12 +13,15 @@ import {
 } from "../types/revive";
 import { FALLBACK_PRODUCTS } from "./fallbackProducts";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (process.env.NODE_ENV === "production" ? "" : "http://127.0.0.1:8000");
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim() || "";
+const API_BASE = rawApiUrl
+  ? rawApiUrl.replace(/\/+$/, "")
+  : process.env.NODE_ENV === "production"
+  ? ""
+  : "http://127.0.0.1:8000";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE}${path}`;
+  const url = `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
   const defaultHeaders: Record<string, string> = {
     "Content-Type": "application/json",
   };

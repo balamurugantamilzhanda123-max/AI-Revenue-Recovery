@@ -4,6 +4,9 @@ import React, { useState } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import DemoControlCenter from "../demo/DemoControlCenter";
+import ResetConfirmationModal from "../common/ResetConfirmationModal";
+import Toast from "../common/Toast";
+import { resetDashboard } from "../../lib/api";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -22,6 +25,41 @@ export default function AppShell({
 }: AppShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [toast, setToast] = useState<{
+    isOpen: boolean;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({
+    isOpen: false,
+    message: "",
+    type: "success",
+  });
+
+  const handleResetConfirm = async () => {
+    try {
+      const res = await resetDashboard();
+      setToast({
+        isOpen: true,
+        message:
+          res.message ||
+          "Dashboard reset successfully. All transaction and recovery data has been cleared.",
+        type: "success",
+      });
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (err: any) {
+      setToast({
+        isOpen: true,
+        message:
+          err.message ||
+          "Reset failed. No data was intentionally left in a partially reset state.",
+        type: "error",
+      });
+      throw err;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col antialiased">
@@ -53,6 +91,7 @@ export default function AppShell({
             isRefreshing={isRefreshing}
             onOpenMobileNav={() => setMobileNavOpen(true)}
             onOpenDemo={() => setDemoOpen(true)}
+            onOpenReset={() => setResetOpen(true)}
           />
 
           <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-8">
@@ -66,6 +105,21 @@ export default function AppShell({
         isOpen={demoOpen}
         onClose={() => setDemoOpen(false)}
         onDataChanged={onRefresh}
+      />
+
+      {/* Global Reset Confirmation Modal */}
+      <ResetConfirmationModal
+        isOpen={resetOpen}
+        onClose={() => setResetOpen(false)}
+        onConfirm={handleResetConfirm}
+      />
+
+      {/* Toast Feedback Notification */}
+      <Toast
+        isOpen={toast.isOpen}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

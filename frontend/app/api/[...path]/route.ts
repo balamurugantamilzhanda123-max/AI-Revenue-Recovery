@@ -22,6 +22,40 @@ function shouldProxyToBackend(): boolean {
   return cleanBackendUrl.startsWith("https://") || cleanBackendUrl.startsWith("http://");
 }
 
+// In-Memory Fallback State (for standalone or serverless demo)
+interface MockTx {
+  id: string;
+  transaction_id: string;
+  order_id: string;
+  customer_id: string;
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+    status: string;
+  };
+  product_id: string;
+  product_name: string;
+  category: string;
+  amount: number;
+  currency: string;
+  status: "SUCCESS" | "FAILED" | "ABANDONED" | "UNRESOLVED" | "PENDING";
+  payment_method: string;
+  failure_reason: string | null;
+  gateway_response: string | null;
+  retry_count: number;
+  recovery_status: "NOT_STARTED" | "OPEN" | "IN_PROGRESS" | "RECOVERED" | "FAILED" | "ESCALATED" | "STOPPED";
+  recovered_amount: number;
+  escalation_status: "NONE" | "OPEN" | "IN_REVIEW" | "RESOLVED";
+  recovery_token?: string;
+  customer_response?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+let inMemoryTransactions: MockTx[] = [];
+let inMemoryAuditLogs: any[] = [];
+
 async function handleApiRequest(req: NextRequest, { params }: { params: { path: string[] } }) {
   const pathParts = params?.path || [];
   const pathStr = pathParts.join("/");
@@ -57,6 +91,19 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       clearTimeout(timeout);
 
       if (res.ok || (res.status >= 200 && res.status < 500)) {
+        // If it's a binary response like PDF or Excel
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("pdf") || contentType.includes("spreadsheetml") || contentType.includes("octet-stream")) {
+          const blob = await res.arrayBuffer();
+          return new NextResponse(blob, {
+            status: res.status,
+            headers: {
+              "Content-Type": contentType,
+              "Content-Disposition": res.headers.get("content-disposition") || "attachment",
+            },
+          });
+        }
+
         const data = await res.json().catch(() => null);
         return NextResponse.json(data || {}, { status: res.status });
       }
@@ -71,9 +118,43 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
   if (pathStr === "health") {
     return NextResponse.json({
       status: "ok",
-      service: "ReviveAI Vercel Engine",
+      service: "ReviveAI Native Engine",
       version: "2.1.0",
       timestamp: new Date().toISOString(),
+    });
+  }
+
+  // Admin Reset Dashboard
+  if (pathStr === "admin/reset-dashboard" || pathStr === "demo/reset-all") {
+    const prevCount = inMemoryTransactions.length;
+    inMemoryTransactions = [];
+    const resetTime = new Date().toISOString();
+    inMemoryAuditLogs = [
+      {
+        id: "audit_reset_" + Math.random().toString(36).substring(2, 9),
+        event_type: "DASHBOARD_RESET",
+        event_message: "All operational transaction and revenue recovery data reset.",
+        actor: "ADMIN",
+        metadata: {
+          transactions_deleted: prevCount,
+          recovery_cases_deleted: prevCount,
+          escalation_cases_deleted: 0,
+          orders_deleted: prevCount,
+          reset_timestamp: resetTime,
+        },
+        created_at: resetTime,
+        timestamp: resetTime,
+      },
+    ];
+
+    return NextResponse.json({
+      success: true,
+      message: "Dashboard reset successfully. All transaction and recovery data has been cleared.",
+      metadata: {
+        transactions_deleted: prevCount,
+        reset_timestamp: resetTime,
+      },
+      timestamp: resetTime,
     });
   }
 
@@ -111,79 +192,6 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     });
   }
 
-  // Customer Registration
-  if (pathStr === "checkout/customer/register" || pathStr === "checkout/register") {
-    let body: any = {};
-    try {
-      body = await req.json();
-    } catch {
-      // empty
-    }
-    const name = (body.full_name || "Valued Customer").trim();
-    const email = (body.email || "customer@voltstore.in").trim().toLowerCase();
-    const phone = (body.phone || "9876543210").trim();
-    return NextResponse.json({
-      success: true,
-      message: "Account created successfully.",
-      customer: {
-        id: "cust_volt_" + Math.random().toString(36).substring(2, 8),
-        name: name,
-        email: email,
-        phone: phone,
-        saved_address: {
-          full_name: name,
-          phone: phone,
-          email: email,
-          address_line1: "12, Main Tech Park Road",
-          address_line2: "",
-          city: "Bengaluru",
-          state: "Karnataka",
-          pincode: "560001",
-        },
-      },
-      token: "cust_tok_" + Math.random().toString(36).substring(2, 12),
-    });
-  }
-
-  // Customer Profile (Me)
-  if (pathStr === "checkout/customer/me") {
-    const email = req.nextUrl.searchParams.get("email") || "customer@voltstore.in";
-    const name = email.includes("@") ? email.split("@")[0].toUpperCase() : "CUSTOMER";
-    return NextResponse.json({
-      customer: {
-        id: "cust_active_demo",
-        name: name,
-        email: email,
-        phone: "9876543210",
-        saved_address: {
-          full_name: name,
-          phone: "9876543210",
-          email: email,
-          address_line1: "12, Main Tech Park Road",
-          address_line2: "Near Metro Hub",
-          city: "Bengaluru",
-          state: "Karnataka",
-          pincode: "560001",
-        },
-      },
-    });
-  }
-
-  // Customer Address Save
-  if (pathStr === "checkout/customer/address") {
-    let body: any = {};
-    try {
-      body = await req.json();
-    } catch {
-      // empty
-    }
-    return NextResponse.json({
-      success: true,
-      message: "Address saved successfully.",
-      address: body,
-    });
-  }
-
   // Customer Products
   if (pathStr === "checkout/products") {
     const category = req.nextUrl.searchParams.get("category");
@@ -199,8 +207,7 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.description.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          (p.subcategory && p.subcategory.toLowerCase().includes(q))
+          p.category.toLowerCase().includes(q)
       );
     }
     return NextResponse.json({ data: list, count: list.length });
@@ -213,54 +220,8 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     return NextResponse.json({ data: found || FALLBACK_PRODUCTS[0] });
   }
 
-  // Customer Orders
-  if (pathStr === "checkout/customer/orders") {
-    return NextResponse.json({
-      data: [
-        {
-          order_id: "ORD-9821-DEMO",
-          transaction_id: "TXN-9821-DEMO",
-          product_name: "Philips Stellar 9W LED Bulb (Cool Day White)",
-          category: "Lighting",
-          image_url: "https://images.unsplash.com/photo-1550524514-6c70313172ca?w=600&auto=format&fit=crop&q=80",
-          amount: 298,
-          currency: "INR",
-          payment_method: "UPI / PhonePe",
-          payment_status: "SUCCESS",
-          order_status: "CONFIRMED",
-          recovery_status: "RECOVERED",
-          recovery_token: "recov_demo_tok",
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          can_retry: false,
-          retry_link: "/pay/recover/recov_demo_tok",
-        },
-      ],
-      count: 1,
-    });
-  }
-
-  // Initiate Checkout Session
-  if (pathStr === "checkout/initiate") {
-    let body: any = {};
-    try {
-      body = await req.json();
-    } catch {
-      // empty
-    }
-    const orderId = "ORD-" + Math.floor(100000 + Math.random() * 900000);
-    const txnId = "TXN-" + Math.floor(100000 + Math.random() * 900000);
-    return NextResponse.json({
-      success: true,
-      order_id: orderId,
-      transaction_id: txnId,
-      amount: body.amount || 2499,
-      currency: "INR",
-      message: "Checkout session initialized",
-    });
-  }
-
-  // Process Customer Payment
-  if (pathStr === "checkout/process-payment") {
+  // Process Customer Payment & Demo Scenarios
+  if (pathStr === "checkout/process-payment" || pathStr === "checkout/pay") {
     let body: any = {};
     try {
       body = await req.json();
@@ -273,6 +234,7 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     const orderId = body.order_id || "ORD-" + Math.floor(100000 + Math.random() * 900000);
     const txnId = body.transaction_id || "TXN-" + Math.floor(100000 + Math.random() * 900000);
     const recovToken = "recov_" + Math.random().toString(36).substring(2, 10);
+    const amount = Number(body.amount || 2499);
 
     const scenario = body.simulation_scenario || "NETWORK_ERROR";
     const failureReasonMap: Record<string, { reason: string; msg: string; risk: string }> = {
@@ -309,6 +271,52 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     };
 
     const details = failureReasonMap[scenario] || failureReasonMap.NETWORK_ERROR;
+    const nowIso = new Date().toISOString();
+
+    // Ingest into inMemoryTransactions
+    const newTx: MockTx = {
+      id: "mock_tx_" + Math.random().toString(36).substring(2, 9),
+      transaction_id: txnId,
+      order_id: orderId,
+      customer_id: "cust_active",
+      customer: {
+        name: body.customer?.name || "Valued Customer",
+        email: body.customer?.email || "customer@voltstore.in",
+        phone: body.customer?.phone || "+91 98765 43210",
+        status: "ACTIVE",
+      },
+      product_id: body.product_id || "prod_volt_01",
+      product_name: body.product_name || "VoltStore Electronics",
+      category: body.category || "Electronics",
+      amount: amount,
+      currency: "INR",
+      status: isSuccess ? "SUCCESS" : "FAILED",
+      payment_method: body.payment_method || "UPI",
+      failure_reason: isSuccess ? null : details.reason,
+      gateway_response: isSuccess ? "Captured successfully" : details.msg,
+      retry_count: 0,
+      recovery_status: isSuccess ? "RECOVERED" : "OPEN",
+      recovered_amount: isSuccess ? amount : 0,
+      escalation_status: "NONE",
+      recovery_token: recovToken,
+      created_at: nowIso,
+      updated_at: nowIso,
+    };
+    inMemoryTransactions.unshift(newTx);
+
+    // Audit log
+    inMemoryAuditLogs.unshift({
+      id: "audit_" + Math.random().toString(36).substring(2, 9),
+      transaction_id: txnId,
+      event_type: isSuccess ? "PAYMENT_SUCCESS" : "REVENUE_RISK_DETECTED",
+      event_message: isSuccess
+        ? `Payment captured for ${txnId} (INR ${amount})`
+        : `Revenue risk detected for ${txnId}: ${details.reason}`,
+      actor: "ReviveAI Engine",
+      metadata: { amount, scenario, status: newTx.status },
+      created_at: nowIso,
+      timestamp: nowIso,
+    });
 
     return NextResponse.json({
       success: isSuccess,
@@ -337,49 +345,53 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
 
   // Abandon Customer Checkout
   if (pathStr === "checkout/abandon") {
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      // empty
+    }
+    const orderId = body.order_id || "ORD-" + Math.floor(100000 + Math.random() * 900000);
+    const txnId = "TXN-" + Math.floor(100000 + Math.random() * 900000);
     const recovToken = "recov_abn_" + Math.random().toString(36).substring(2, 10);
+    const amount = Number(body.amount || 2499);
+    const nowIso = new Date().toISOString();
+
+    const newTx: MockTx = {
+      id: "mock_tx_" + Math.random().toString(36).substring(2, 9),
+      transaction_id: txnId,
+      order_id: orderId,
+      customer_id: "cust_active",
+      customer: {
+        name: body.customer?.name || "Valued Customer",
+        email: body.customer?.email || "customer@voltstore.in",
+        phone: body.customer?.phone || "+91 98765 43210",
+        status: "ACTIVE",
+      },
+      product_id: body.product_id || "prod_volt_01",
+      product_name: body.product_name || "VoltStore Electronics",
+      category: body.category || "Electronics",
+      amount: amount,
+      currency: "INR",
+      status: "ABANDONED",
+      payment_method: "NETBANKING",
+      failure_reason: "Checkout session expired before payment authorization",
+      gateway_response: "Session Abandonment",
+      retry_count: 0,
+      recovery_status: "OPEN",
+      recovered_amount: 0,
+      escalation_status: "NONE",
+      recovery_token: recovToken,
+      created_at: nowIso,
+      updated_at: nowIso,
+    };
+    inMemoryTransactions.unshift(newTx);
+
     return NextResponse.json({
       success: true,
       message: "Checkout abandonment logged. Recovery link dispatched via SMS/Email.",
       recovery_token: recovToken,
       retry_link: `/pay/recover/${recovToken}`,
-    });
-  }
-
-  // Recovery Session Details
-  if (pathStr.startsWith("checkout/recover/")) {
-    const token = pathParts[2] || "demo_token";
-    return NextResponse.json({
-      order_id: "ORD-REC-" + token.substring(0, 6).toUpperCase(),
-      transaction_id: "TXN-REC-" + token.substring(0, 6).toUpperCase(),
-      token: token,
-      status: "FAILED",
-      amount: 65999,
-      discounted_amount: 63999,
-      currency: "INR",
-      payment_method: "UPI / Netbanking",
-      failure_reason: "BANK_NETWORK_TIMEOUT",
-      is_network_error: true,
-      recovery_status: "IN_PROGRESS",
-      attempts_left: 1,
-      customer_name: "VALUED CUSTOMER",
-      customer: {
-        name: "VALUED CUSTOMER",
-        email: "customer@voltstore.in",
-        phone: "9876543210",
-      },
-      product: {
-        id: "prod_laptop_biz_01",
-        name: "ProBook Ultra Slim 15.6\" Business Laptop",
-        category: "Laptops & Computers",
-        image_url: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80",
-        price: 65999,
-      },
-      product_name: "ProBook Ultra Slim 15.6\" Business Laptop",
-      already_paid: false,
-      already_used: false,
-      escalated_to_support: false,
-      retry_allowed: true,
     });
   }
 
@@ -393,6 +405,21 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     }
     const isSuccess =
       body.retry_outcome === "SUCCESS" || body.retry_outcome === "RETRY_SUCCESS";
+    const txId = body.transaction_id || "";
+    const matched = inMemoryTransactions.find((t) => t.transaction_id === txId || t.order_id === body.order_id);
+    if (matched) {
+      if (isSuccess) {
+        matched.status = "SUCCESS";
+        matched.recovery_status = "RECOVERED";
+        matched.recovered_amount = matched.amount;
+      } else {
+        matched.recovery_status = "ESCALATED";
+        matched.escalation_status = "OPEN";
+      }
+      matched.retry_count += 1;
+      matched.updated_at = new Date().toISOString();
+    }
+
     return NextResponse.json({
       success: isSuccess,
       status: isSuccess ? "SUCCESS" : "ESCALATED",
@@ -404,8 +431,8 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       already_paid: isSuccess,
       order_id: body.order_id || "ORD-REC-DEMO",
       transaction_id: body.transaction_id || "TXN-REC-DEMO",
-      recovered_amount: isSuccess ? 65999 : 0,
-      amount: 65999,
+      recovered_amount: isSuccess ? (matched?.amount || 65999) : 0,
+      amount: matched?.amount || 65999,
       currency: "INR",
       message: isSuccess
         ? "Autonomous recovery successful! Payment confirmed."
@@ -413,459 +440,354 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     });
   }
 
+  // Dashboard Dynamic Calculations
+  const txs = inMemoryTransactions;
+  const totalOrders = txs.length;
+  const successOrders = txs.filter((t) => t.status === "SUCCESS").length;
+  const failedOrders = txs.filter((t) => t.status === "FAILED").length;
+  const abandonedOrders = txs.filter((t) => t.status === "ABANDONED").length;
+
+  const recoverableTxs = txs.filter(
+    (t) => (t.status === "FAILED" || t.status === "ABANDONED" || t.status === "UNRESOLVED") &&
+      t.recovery_status !== "RECOVERED" && t.recovery_status !== "STOPPED"
+  );
+  const revenueAtRisk = recoverableTxs.reduce((sum, t) => sum + (t.amount || 0), 0);
+  const totalRecovered = txs.reduce((sum, t) => sum + (t.recovered_amount || 0), 0);
+  const recoveryPool = revenueAtRisk + totalRecovered;
+  const recoveryRate = recoveryPool > 0 ? Number(((totalRecovered / recoveryPool) * 100).toFixed(1)) : 0;
+
+  // Network errors
+  const networkErrors = txs.filter((t) =>
+    ((t.failure_reason || "") + (t.gateway_response || "")).toLowerCase().includes("network") ||
+    ((t.failure_reason || "") + (t.gateway_response || "")).toLowerCase().includes("tcp rst")
+  ).length;
+
+  const timeouts = txs.filter((t) =>
+    ((t.failure_reason || "") + (t.gateway_response || "")).toLowerCase().includes("timeout")
+  ).length;
+
+  const authFails = txs.filter((t) =>
+    ((t.failure_reason || "") + (t.gateway_response || "")).toLowerCase().includes("auth") ||
+    ((t.failure_reason || "") + (t.gateway_response || "")).toLowerCase().includes("3ds") ||
+    ((t.failure_reason || "") + (t.gateway_response || "")).toLowerCase().includes("otp")
+  ).length;
+
+  // AI vs Human
+  const aiRecovered = txs
+    .filter((t) => t.status === "SUCCESS" && t.recovered_amount > 0 && t.customer_response !== "RECOVERED_BY_HUMAN")
+    .reduce((sum, t) => sum + t.recovered_amount, 0);
+
+  const humanRecovered = txs
+    .filter((t) => t.status === "SUCCESS" && t.recovered_amount > 0 && t.customer_response === "RECOVERED_BY_HUMAN")
+    .reduce((sum, t) => sum + t.recovered_amount, 0);
+
+  const aiCasesCount = txs.filter((t) => t.recovery_status === "OPEN" || (t.recovery_status === "RECOVERED" && t.customer_response !== "RECOVERED_BY_HUMAN")).length;
+  const humanCasesCount = txs.filter((t) => t.escalation_status !== "NONE" || t.recovery_status === "ESCALATED" || t.customer_response === "RECOVERED_BY_HUMAN").length;
+  const highRiskCount = recoverableTxs.filter((t) => t.amount >= 10000).length;
+
+  // Dashboard Summary & Metrics
+  if (pathStr === "dashboard/summary") {
+    return NextResponse.json({
+      total_transactions: totalOrders,
+      failed_transactions: failedOrders,
+      revenue_at_risk: revenueAtRisk,
+      total_risk_detected: revenueAtRisk + totalRecovered,
+      recovery_attempts: txs.filter((t) => t.retry_count > 0 || t.status === "FAILED").length,
+      successful_recoveries: txs.filter((t) => t.recovery_status === "RECOVERED").length,
+      revenue_recovered: totalRecovered,
+      recovery_rate: recoveryRate,
+      revenue_recovery_rate: recoveryRate,
+      unresolved_cases: recoverableTxs.length,
+      escalated_cases: txs.filter((t) => t.escalation_status !== "NONE" || t.recovery_status === "ESCALATED").length,
+      failure_rate: totalOrders > 0 ? Number(((failedOrders / totalOrders) * 100).toFixed(1)) : 0,
+      average_recovery_latency_seconds: 42,
+      generated_at: new Date().toISOString(),
+    });
+  }
+
+  if (pathStr === "dashboard/recovery-metrics") {
+    const statusCounts: Record<string, number> = {};
+    txs.forEach((t) => {
+      statusCounts[t.recovery_status] = (statusCounts[t.recovery_status] || 0) + 1;
+    });
+
+    return NextResponse.json({
+      summary: {
+        total_transactions: totalOrders,
+        failed_transactions: failedOrders,
+        revenue_at_risk: revenueAtRisk,
+        total_risk_detected: revenueAtRisk + totalRecovered,
+        recovery_attempts: txs.filter((t) => t.retry_count > 0 || t.status === "FAILED").length,
+        successful_recoveries: txs.filter((t) => t.recovery_status === "RECOVERED").length,
+        revenue_recovered: totalRecovered,
+        recovery_rate: recoveryRate,
+        revenue_recovery_rate: recoveryRate,
+        unresolved_cases: recoverableTxs.length,
+        escalated_cases: txs.filter((t) => t.escalation_status !== "NONE" || t.recovery_status === "ESCALATED").length,
+        failure_rate: totalOrders > 0 ? Number(((failedOrders / totalOrders) * 100).toFixed(1)) : 0,
+        average_recovery_latency_seconds: 42,
+        generated_at: new Date().toISOString(),
+      },
+      case_status_counts: statusCounts,
+      total_recovered_amount: totalRecovered,
+      recovery_rate_percentage: recoveryRate,
+      avg_recovery_latency_sec: 42,
+      prevented_churn_count: txs.filter((t) => t.recovery_status === "RECOVERED").length,
+    });
+  }
+
   // Seller Dashboard
   if (pathStr === "seller/dashboard") {
     return NextResponse.json({
-      total_orders: 148,
-      successful_orders: 114,
-      failed_orders: 34,
-      pending_orders: 6,
-      checkout_abandonments: 12,
-      network_errors: 15,
-      payment_failures: 19,
+      total_orders: totalOrders,
+      successful_orders: successOrders,
+      failed_orders: failedOrders,
+      pending_orders: txs.filter((t) => t.status === "PENDING").length,
+      checkout_abandonments: abandonedOrders,
+      network_errors: networkErrors,
+      payment_failures: failedOrders,
       failure_breakdown: {
-        network_errors: 15,
-        timeouts: 8,
-        bank_declines: 6,
-        auth_failures: 5,
-        abandonments: 12,
+        network_errors: networkErrors,
+        timeouts: timeouts,
+        bank_declines: failedOrders - networkErrors - timeouts > 0 ? failedOrders - networkErrors - timeouts : 0,
+        auth_failures: authFails,
+        abandonments: abandonedOrders,
         other: 0,
       },
-      revenue_at_risk: 485200,
+      revenue_at_risk: revenueAtRisk,
       revenue_risk_breakdown: {
-        network_errors: 245000,
-        payment_failures: 128000,
-        checkout_abandonments: 89000,
-        human_pending_cases: 23200,
+        network_errors: revenueAtRisk * 0.5,
+        payment_failures: revenueAtRisk * 0.3,
+        checkout_abandonments: revenueAtRisk * 0.2,
+        human_pending_cases: 0,
       },
-      ai_recovery_cases: 22,
-      ai_recovered_revenue: 312500,
-      human_recovery_cases: 7,
-      human_recovered_revenue: 98000,
-      total_recovered_revenue: 410500,
-      unresolved_cases: 5,
-      unresolved_revenue: 74700,
-      high_risk_cases: 3,
-      recovery_rate: 84.6,
+      ai_recovery_cases: aiCasesCount,
+      ai_recovered_revenue: aiRecovered,
+      human_recovery_cases: humanCasesCount,
+      human_recovered_revenue: humanRecovered,
+      total_recovered_revenue: totalRecovered,
+      unresolved_cases: recoverableTxs.length,
+      unresolved_revenue: revenueAtRisk,
+      high_risk_cases: highRiskCount,
+      recovery_rate: recoveryRate,
       funnel: {
-        orders: 148,
-        checkout_started: 148,
-        payment_initiated: 136,
-        payment_failed_or_abandoned: 34,
-        revenue_at_risk_detected: 34,
-        ai_recovery_triggered: 22,
-        customer_retry_executed: 20,
-        ai_payment_success: 18,
-        escalated_to_human: 7,
-        human_payment_success: 6,
+        orders: totalOrders,
+        checkout_started: totalOrders,
+        payment_initiated: totalOrders - abandonedOrders,
+        payment_failed_or_abandoned: failedOrders + abandonedOrders,
+        revenue_at_risk_detected: recoverableTxs.length,
+        ai_recovery_triggered: failedOrders + abandonedOrders,
+        customer_retry_executed: txs.filter((t) => t.retry_count > 0).length,
+        ai_payment_success: aiCasesCount,
+        escalated_to_human: humanCasesCount,
+        human_payment_success: humanCasesCount,
       },
-      product_revenue_loss: [
-        {
-          product_id: "prod_laptop_biz_01",
-          product_name: "ProBook Ultra Slim 15.6\" Business Laptop",
-          category: "Laptops & Computers",
-          unit_price: 65999,
-          orders_count: 32,
-          successful_orders: 26,
-          failed_orders: 6,
-          network_errors: 4,
-          checkout_abandonments: 2,
-          revenue_at_risk: 395994,
-          recovered_revenue: 329995,
-          recovery_rate: 83.3,
-        },
-        {
-          product_id: "prod_acc_mech_keyboard_01",
-          product_name: "Keychron K2 V2 Wireless Mechanical Keyboard",
-          category: "Computer Accessories",
-          unit_price: 6999,
-          orders_count: 48,
-          successful_orders: 42,
-          failed_orders: 6,
-          network_errors: 3,
-          checkout_abandonments: 3,
-          revenue_at_risk: 41994,
-          recovered_revenue: 34995,
-          recovery_rate: 83.3,
-        },
-      ],
+      product_revenue_loss: [],
       generated_at: new Date().toISOString(),
     });
   }
 
   // Seller Cases
   if (pathStr === "seller/cases") {
-    return NextResponse.json([
-      {
-        order_id: "ORD-8812-BLR",
-        transaction_id: "TXN-8812-BLR",
-        customer: {
-          name: "Rohan Verma",
-          email: "rohan.v@techcorp.in",
-          phone: "+91 98450 11223",
-        },
-        product_id: "prod_laptop_biz_01",
-        product_name: "ProBook Ultra Slim 15.6\" Business Laptop",
-        category: "Laptops & Computers",
-        amount: 65999,
-        currency: "INR",
-        payment_status: "FAILED",
-        failure_reason: "BANK_NETWORK_TIMEOUT",
-        is_network_error: true,
-        attempts: 1,
-        risk: "HIGH",
-        revenue_at_risk: 65999,
-        ai_status: "RECOVERY_DISPATCHED",
-        human_status: "PENDING_HUMAN_REVIEW",
-        recovery_status: "IN_PROGRESS",
-        recovery_token: "recov_8812",
-        created_at: new Date(Date.now() - 1800000).toISOString(),
-      },
-      {
-        order_id: "ORD-8813-CHN",
-        transaction_id: "TXN-8813-CHN",
-        customer: {
-          name: "Priya Sundaram",
-          email: "priya.sundaram@gmail.com",
-          phone: "+91 94440 33445",
-        },
-        product_id: "prod_acc_mech_keyboard_01",
-        product_name: "Keychron K2 V2 Wireless Mechanical Keyboard",
-        category: "Computer Accessories",
-        amount: 6999,
-        currency: "INR",
-        payment_status: "SUCCESS",
-        failure_reason: "OTP_AUTH_TIMEOUT",
-        is_network_error: false,
-        attempts: 2,
-        risk: "LOW",
-        revenue_at_risk: 6999,
-        ai_status: "SMART_RETRY_SUCCESS",
-        human_status: "AUTO_RESOLVED",
-        recovery_status: "RECOVERED",
-        recovery_token: "recov_8813",
-        created_at: new Date(Date.now() - 7200000).toISOString(),
-      },
-    ]);
-  }
-
-  // Human Associate Cases
-  if (pathStr === "human-associate/cases") {
-    return NextResponse.json([
-      {
-        case_id: "CASE-HA-901",
-        order_id: "ORD-901-DEL",
-        transaction_id: "TXN-901-DEL",
-        customer: {
-          name: "Amit Patel",
-          email: "amit.patel@logistics.in",
-          phone: "+91 99887 76655",
-        },
-        product: {
-          id: "prod_laptop_workstation_02",
-          name: "Precision Workstation 16\" (Core i9, 32GB RAM, RTX 4070)",
-          category: "Laptops & Computers",
-        },
-        amount: 129999,
-        currency: "INR",
-        payment_attempts_count: 2,
-        payment_attempts: [
-          {
-            attempt_number: 1,
-            status: "FAILED",
-            gateway_response: "GATEWAY_TIMEOUT",
-            created_at: new Date(Date.now() - 3600000).toISOString(),
-          },
-          {
-            attempt_number: 2,
-            status: "FAILED",
-            gateway_response: "CARD_AUTHENTICATION_FAILED",
-            created_at: new Date(Date.now() - 1800000).toISOString(),
-          },
-        ],
-        failure_reason: "HIGH_VALUE_TRANSACTION_BANK_DECLINE",
-        is_network_error: false,
-        ai_diagnosis: "Customer attempted payment using corporate credit card exceeding single-swipe limits.",
-        ai_recommendation: "Offer custom split payment link or assisted RTGS/NEFT payment with 3% recovery concession.",
-        priority: "CRITICAL",
-        risk_level: "CRITICAL",
-        revenue_at_risk: 129999,
-        case_status: "OPEN",
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-        action_history: [],
-        recovery_token: "recov_case_901",
-      },
-    ]);
-  }
-
-  // Human Associate Actions
-  if (pathStr.startsWith("human-associate/cases/") && pathStr.endsWith("/contact")) {
-    return NextResponse.json({
-      success: true,
-      message: "Customer contact logged. Communication channel triggered.",
-    });
-  }
-  if (pathStr.startsWith("human-associate/cases/") && pathStr.endsWith("/send-link")) {
-    return NextResponse.json({
-      success: true,
-      message: "Personalized recovery payment link generated and sent via SMS & WhatsApp.",
-      payment_link: "/pay/recover/recov_case_901",
-    });
-  }
-  if (pathStr.startsWith("human-associate/cases/") && pathStr.endsWith("/complete-payment")) {
-    return NextResponse.json({
-      success: true,
-      message: "Payment marked as completed by associate. Revenue recovered.",
-    });
-  }
-
-  // Dashboard Summary & Metrics
-  if (pathStr === "dashboard/summary") {
-    const sumObj = {
-      total_transactions: 1250,
-      failed_transactions: 84,
-      revenue_at_risk: 485200,
-      total_risk_detected: 485200,
-      recovery_attempts: 72,
-      successful_recoveries: 68,
-      revenue_recovered: 410500,
-      recovery_rate: 84.6,
-      revenue_recovery_rate: 84.6,
-      unresolved_cases: 5,
-      escalated_cases: 3,
-      failure_rate: 6.72,
-      average_recovery_latency_seconds: 42,
-      total_volume: 18450000,
-      failed_count: 84,
-      failed_volume: 1240000,
-      recovered_count: 68,
-      recovered_volume: 410500,
-      active_escalations: 3,
-      avg_recovery_time_sec: 42,
-      generated_at: new Date().toISOString(),
-    };
-    return NextResponse.json(sumObj);
-  }
-
-  if (pathStr === "dashboard/recovery-metrics") {
-    const sumObj = {
-      total_transactions: 1250,
-      failed_transactions: 84,
-      revenue_at_risk: 485200,
-      total_risk_detected: 485200,
-      recovery_attempts: 72,
-      successful_recoveries: 68,
-      revenue_recovered: 410500,
-      recovery_rate: 84.6,
-      revenue_recovery_rate: 84.6,
-      unresolved_cases: 5,
-      escalated_cases: 3,
-      failure_rate: 6.72,
-      average_recovery_latency_seconds: 42,
-      total_volume: 18450000,
-      failed_count: 84,
-      failed_volume: 1240000,
-      recovered_count: 68,
-      recovered_volume: 410500,
-      active_escalations: 3,
-      avg_recovery_time_sec: 42,
-      generated_at: new Date().toISOString(),
-    };
-    return NextResponse.json({
-      summary: sumObj,
-      case_status_counts: {
-        RECOVERED: 68,
-        OPEN: 11,
-        IN_PROGRESS: 5,
-        ESCALATED: 3,
-        FAILED: 2,
-      },
-      total_recovered_amount: 410500,
-      recovery_rate_percentage: 84.6,
-      avg_recovery_latency_sec: 42,
-      prevented_churn_count: 68,
-      smart_retry_success_rate: 76.4,
-      downtime_circuit_trips: 2,
-    });
+    return NextResponse.json(
+      txs.map((t) => ({
+        order_id: t.order_id,
+        transaction_id: t.transaction_id,
+        customer: t.customer,
+        product_id: t.product_id,
+        product_name: t.product_name,
+        category: t.category,
+        amount: t.amount,
+        currency: t.currency,
+        payment_status: t.status,
+        failure_reason: t.failure_reason,
+        is_network_error: (t.failure_reason || "").toLowerCase().includes("network"),
+        attempts: t.retry_count + 1,
+        risk: t.amount >= 50000 ? "CRITICAL" : t.amount >= 10000 ? "HIGH" : "MEDIUM",
+        revenue_at_risk: t.status !== "SUCCESS" ? t.amount : 0,
+        ai_status: t.recovery_status === "OPEN" ? "ACTIVE" : t.recovery_status,
+        human_status: t.escalation_status,
+        recovery_status: t.recovery_status,
+        recovery_token: t.recovery_token,
+        created_at: t.created_at,
+      }))
+    );
   }
 
   // Transactions list
   if (pathStr === "transactions") {
-    const txList = [
-      {
-        id: "txn_demo_1",
-        transaction_id: "TXN-8812-BLR",
-        customer_id: "cust_rohan",
-        customer: {
-          id: "cust_rohan",
-          name: "Rohan Verma",
-          email: "rohan.v@techcorp.in",
-          phone: "+91 98450 11223",
-          status: "ACTIVE",
-        },
-        order_id: "ORD-8812-BLR",
-        amount: 65999,
-        currency: "INR",
-        status: "FAILED",
-        payment_method: "CARD",
-        failure_reason: "BANK_NETWORK_TIMEOUT",
-        gateway_response: "Acquiring gateway connection dropped during 3DS auth handshake",
-        retry_count: 1,
-        recovery_status: "IN_PROGRESS",
-        recovered_amount: 0,
-        escalation_status: "OPEN",
-        created_at: new Date(Date.now() - 1800000).toISOString(),
-      },
-      {
-        id: "txn_demo_2",
-        transaction_id: "TXN-8813-CHN",
-        customer_id: "cust_priya",
-        customer: {
-          id: "cust_priya",
-          name: "Priya Sundaram",
-          email: "priya.sundaram@gmail.com",
-          phone: "+91 94440 33445",
-          status: "ACTIVE",
-        },
-        order_id: "ORD-8813-CHN",
-        amount: 6999,
-        currency: "INR",
-        status: "SUCCESS",
-        payment_method: "UPI",
-        failure_reason: null,
-        gateway_response: "Payment captured successfully on customer retry (Sandbox)",
-        retry_count: 1,
-        recovery_status: "RECOVERED",
-        recovered_amount: 6999,
-        escalation_status: "NONE",
-        created_at: new Date(Date.now() - 7200000).toISOString(),
-      },
-    ];
     return NextResponse.json({
-      data: txList,
-      transactions: txList,
-      total: txList.length,
-      total_count: txList.length,
+      data: txs,
+      transactions: txs,
+      total: txs.length,
+      total_count: txs.length,
       pagination: {
         limit: 50,
         offset: 0,
-        returned: txList.length,
+        returned: txs.length,
         next_offset: null,
       },
     });
   }
 
-  // Revenue Risk
+  // Revenue Risk list
   if (pathStr === "revenue-risk") {
-    const riskCases = [
-      {
-        id: "risk_case_1",
-        case_id: "risk_case_1",
-        transaction_id: "TXN-8812-BLR",
-        risk_amount: 65999,
-        amount: 65999,
-        currency: "INR",
-        status: "FAILED",
-        recovery_status: "IN_PROGRESS",
-        action_status: "POLICY_APPROVED",
-        risk_level: "HIGH",
-        root_cause: "payment_timeout",
-        recommended_action: "controlled_retry",
-        recovered_amount: 0,
-        evidence: ["Gateway latency exceeded 30000ms", "3DS auth dropped"],
-        created_at: new Date(Date.now() - 1800000).toISOString(),
-      },
-      {
-        id: "risk_case_2",
-        case_id: "risk_case_2",
-        transaction_id: "TXN-8813-CHN",
-        risk_amount: 6999,
-        amount: 6999,
-        currency: "INR",
-        status: "SUCCESS",
-        recovery_status: "RECOVERED",
-        action_status: "EXECUTED",
-        risk_level: "LOW",
-        root_cause: "authentication_failure",
-        recommended_action: "controlled_retry",
-        recovered_amount: 6999,
-        evidence: ["OTP handshake retry succeeded"],
-        created_at: new Date(Date.now() - 7200000).toISOString(),
-      },
-    ];
+    const riskCases = recoverableTxs.map((t) => ({
+      id: "risk_" + t.transaction_id,
+      case_id: "risk_" + t.transaction_id,
+      transaction_id: t.transaction_id,
+      risk_amount: t.amount,
+      amount: t.amount,
+      currency: t.currency,
+      status: t.status,
+      recovery_status: t.recovery_status,
+      action_status: "POLICY_APPROVED",
+      risk_level: t.amount >= 10000 ? "HIGH" : "MEDIUM",
+      root_cause: (t.failure_reason || "").toLowerCase().includes("network")
+        ? "technical_failure"
+        : "payment_timeout",
+      recommended_action: "controlled_retry",
+      recovered_amount: t.recovered_amount,
+      evidence: [t.failure_reason || "Payment declined by switch"],
+      created_at: t.created_at,
+    }));
     return NextResponse.json(riskCases);
   }
 
   if (pathStr === "revenue-risk/summary") {
     return NextResponse.json({
-      total_transactions: 1250,
-      failed_transactions: 84,
-      revenue_at_risk: 485200,
-      total_risk_detected: 485200,
-      recovery_attempts: 72,
-      successful_recoveries: 68,
-      revenue_recovered: 410500,
-      recovery_rate: 84.6,
-      unresolved_cases: 5,
-      escalated_cases: 3,
-      failure_rate: 6.72,
-      revenue_recovery_rate: 84.6,
+      total_transactions: totalOrders,
+      failed_transactions: failedOrders,
+      revenue_at_risk: revenueAtRisk,
+      total_risk_detected: revenueAtRisk + totalRecovered,
+      recovery_attempts: txs.filter((t) => t.retry_count > 0 || t.status === "FAILED").length,
+      successful_recoveries: txs.filter((t) => t.recovery_status === "RECOVERED").length,
+      revenue_recovered: totalRecovered,
+      recovery_rate: recoveryRate,
+      unresolved_cases: recoverableTxs.length,
+      escalated_cases: txs.filter((t) => t.escalation_status !== "NONE" || t.recovery_status === "ESCALATED").length,
+      failure_rate: totalOrders > 0 ? Number(((failedOrders / totalOrders) * 100).toFixed(1)) : 0,
+      revenue_recovery_rate: recoveryRate,
       average_recovery_latency_seconds: 42,
     });
   }
 
   // Escalations
   if (pathStr === "escalations") {
-    return NextResponse.json([
-      {
-        id: "esc_demo_1",
-        transaction_id: "TXN-901-DEL",
-        reason: "CARD_LIMIT_EXCEEDED",
-        status: "OPEN",
-        priority: "CRITICAL",
-        amount: 129999,
-        currency: "INR",
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-      },
-    ]);
+    const escTxs = txs.filter((t) => t.escalation_status !== "NONE" || t.recovery_status === "ESCALATED");
+    return NextResponse.json(
+      escTxs.map((t) => ({
+        id: "esc_" + t.transaction_id,
+        transaction_id: t.transaction_id,
+        reason: t.failure_reason || "SAFETY_LIMIT_REACHED",
+        status: t.escalation_status || "OPEN",
+        priority: t.amount >= 10000 ? "CRITICAL" : "MEDIUM",
+        amount: t.amount,
+        currency: t.currency,
+        created_at: t.created_at,
+      }))
+    );
   }
 
   // Audit Logs
   if (pathStr.startsWith("audit")) {
-    const evList = [
-      {
-        id: "audit_ev_1",
-        transaction_id: "TXN-8812-BLR",
-        recovery_case_id: "risk_case_1",
-        event_type: "RECOVERY_DISPATCHED",
-        event_message: "Automated payment continuation link sent to customer",
-        actor: "ReviveAI Autonomous Agent",
-        metadata: { channel: "SMS", token: "recov_8812" },
-        created_at: new Date(Date.now() - 1200000).toISOString(),
-        timestamp: new Date(Date.now() - 1200000).toISOString(),
-      },
-      {
-        id: "audit_ev_2",
-        transaction_id: "TXN-8813-CHN",
-        recovery_case_id: "risk_case_2",
-        event_type: "PAYMENT_RECOVERED",
-        event_message: "Payment captured successfully on customer retry (Sandbox)",
-        actor: "Smart Retry Engine",
-        metadata: { amount: 6999, method: "UPI" },
-        created_at: new Date(Date.now() - 7100000).toISOString(),
-        timestamp: new Date(Date.now() - 7100000).toISOString(),
-      },
-    ];
     return NextResponse.json({
-      data: evList,
-      events: evList,
-      count: evList.length,
-      total_count: evList.length,
+      data: inMemoryAuditLogs,
+      events: inMemoryAuditLogs,
+      count: inMemoryAuditLogs.length,
+      total_count: inMemoryAuditLogs.length,
       pagination: {
         limit: 50,
         offset: 0,
-        returned: evList.length,
+        returned: inMemoryAuditLogs.length,
         next_offset: null,
+      },
+    });
+  }
+
+  // Reports JSON endpoint
+  if (pathStr === "reports") {
+    const findings: string[] = [];
+    if (totalOrders === 0) {
+      findings.push("No transactions or revenue events recorded in the current system period.");
+      findings.push("Operational baseline is reset. Ready to ingest new checkout transactions.");
+    } else {
+      findings.push(`Total monitored volume is ${totalOrders} transactions with INR ${revenueAtRisk.toLocaleString("en-IN")} at risk.`);
+      findings.push(`Autonomous AI & Human recovery recovered INR ${totalRecovered.toLocaleString("en-IN")} (${recoveryRate}% recovery rate).`);
+      if (recoverableTxs.length > 0) {
+        findings.push(`${recoverableTxs.length} active unresolved case(s) requiring retry sequence or human associate review.`);
+      }
+    }
+
+    const txDetails = txs.map((t) => ({
+      transaction_id: t.transaction_id,
+      order_id: t.order_id,
+      amount: t.amount,
+      currency: t.currency,
+      status: t.status,
+      failure_type: t.failure_reason || (t.status === "ABANDONED" ? "Checkout Abandonment" : "None"),
+      diagnosis: t.failure_reason || (t.status === "SUCCESS" ? "Standard Authorization" : "Payment Failure"),
+      recovery_action: t.status === "SUCCESS" ? "Captured" : "Automated Smart Retry",
+      recovery_method: t.customer_response === "RECOVERED_BY_HUMAN" ? "Human Associate" : "AI Autonomous Agent",
+      recovery_status: t.recovery_status,
+      recovered_amount: t.recovered_amount,
+      created_date: t.created_at,
+      updated_date: t.updated_at,
+    }));
+
+    return NextResponse.json({
+      summary: {
+        total_orders: totalOrders,
+        successful_payments: successOrders,
+        failed_payments: failedOrders,
+        abandoned_payments: abandonedOrders,
+        revenue_at_risk: revenueAtRisk,
+        ai_recovered: aiRecovered,
+        human_recovered: humanRecovered,
+        total_recovered: totalRecovered,
+        recovery_rate: recoveryRate,
+      },
+      failure_analysis: {
+        network_errors: networkErrors,
+        payment_timeouts: timeouts,
+        authentication_failures: authFails,
+        abandonments: abandonedOrders,
+        other_failures: 0,
+      },
+      recovery_analysis: {
+        ai_recovery_cases: aiCasesCount,
+        human_recovery_cases: humanCasesCount,
+        high_risk_cases: highRiskCount,
+        unresolved_cases: recoverableTxs.length,
+      },
+      executive_findings: findings,
+      transactions: txDetails,
+      generated_at: new Date().toISOString(),
+    });
+  }
+
+  // Reports PDF endpoint
+  if (pathStr === "reports/pdf") {
+    const pdfSimple = `%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Contents 4 0 R>>endobj 4 0 obj<</Length 160>>stream\nBT /F1 16 Tf 50 720 Td (REVIVEAI - REVENUE RECOVERY REPORT) Tj ET\nBT /F1 10 Tf 50 690 Td (Total Orders: ${totalOrders}  |  Revenue at Risk: INR ${revenueAtRisk}  |  Recovered: INR ${totalRecovered}) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000052 00000 n\n0000000115 00000 n\n0000000210 00000 n\ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n420\n%%EOF\n`;
+    const curDate = new Date().toISOString().split("T")[0];
+    return new NextResponse(pdfSimple, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="ReviveAI_Revenue_Recovery_Report_${curDate}.pdf"`,
+      },
+    });
+  }
+
+  // Reports Excel endpoint
+  if (pathStr === "reports/excel") {
+    const csvContent = `Metric,Value\nTotal Orders,${totalOrders}\nSuccessful Payments,${successOrders}\nFailed Payments,${failedOrders}\nAbandoned Payments,${abandonedOrders}\nRevenue at Risk,${revenueAtRisk}\nAI Recovered,${aiRecovered}\nHuman Recovered,${humanRecovered}\nTotal Recovered,${totalRecovered}\nRecovery Rate,${recoveryRate}%\n`;
+    const curDate = new Date().toISOString().split("T")[0];
+    return new NextResponse(csvContent, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="ReviveAI_Revenue_Recovery_Report_${curDate}.xlsx"`,
       },
     });
   }

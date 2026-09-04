@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Menu, RefreshCw, Sparkles, Cpu } from "lucide-react";
+import { Menu, RefreshCw, Sparkles, Cpu, RotateCcw } from "lucide-react";
 
 interface HeaderProps {
   title: string;
@@ -10,6 +10,7 @@ interface HeaderProps {
   isRefreshing?: boolean;
   onOpenMobileNav?: () => void;
   onOpenDemo?: () => void;
+  onOpenReset?: () => void;
 }
 
 export default function Header({
@@ -19,6 +20,7 @@ export default function Header({
   isRefreshing = false,
   onOpenMobileNav,
   onOpenDemo,
+  onOpenReset,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-6 py-4 shadow-sm">
@@ -63,6 +65,18 @@ export default function Header({
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-200" />
               <span>Demo Center</span>
+            </button>
+          )}
+
+          {/* Reset Dashboard Action */}
+          {onOpenReset && (
+            <button
+              onClick={onOpenReset}
+              className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 hover:text-rose-900 text-xs font-bold font-mono rounded-xl transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
+              title="Reset all transaction and recovery data"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+              <span>Reset Dashboard</span>
             </button>
           )}
 

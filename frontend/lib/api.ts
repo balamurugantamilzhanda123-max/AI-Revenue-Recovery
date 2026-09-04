@@ -154,35 +154,35 @@ export async function fetchRevenueRiskSummary(): Promise<DashboardSummary> {
     if (res && res.summary) return res.summary;
     if (res && typeof res.revenue_at_risk === "number") return res;
     return {
-      total_transactions: 1250,
-      failed_transactions: 84,
-      revenue_at_risk: 485200,
-      total_risk_detected: 485200,
-      recovery_attempts: 72,
-      successful_recoveries: 68,
-      revenue_recovered: 410500,
-      recovery_rate: 84.6,
-      unresolved_cases: 5,
-      escalated_cases: 3,
-      failure_rate: 6.72,
-      revenue_recovery_rate: 84.6,
-      average_recovery_latency_seconds: 42,
+      total_transactions: 0,
+      failed_transactions: 0,
+      revenue_at_risk: 0,
+      total_risk_detected: 0,
+      recovery_attempts: 0,
+      successful_recoveries: 0,
+      revenue_recovered: 0,
+      recovery_rate: 0,
+      unresolved_cases: 0,
+      escalated_cases: 0,
+      failure_rate: 0,
+      revenue_recovery_rate: 0,
+      average_recovery_latency_seconds: 0,
     };
   } catch {
     return {
-      total_transactions: 1250,
-      failed_transactions: 84,
-      revenue_at_risk: 485200,
-      total_risk_detected: 485200,
-      recovery_attempts: 72,
-      successful_recoveries: 68,
-      revenue_recovered: 410500,
-      recovery_rate: 84.6,
-      unresolved_cases: 5,
-      escalated_cases: 3,
-      failure_rate: 6.72,
-      revenue_recovery_rate: 84.6,
-      average_recovery_latency_seconds: 42,
+      total_transactions: 0,
+      failed_transactions: 0,
+      revenue_at_risk: 0,
+      total_risk_detected: 0,
+      recovery_attempts: 0,
+      successful_recoveries: 0,
+      revenue_recovered: 0,
+      recovery_rate: 0,
+      unresolved_cases: 0,
+      escalated_cases: 0,
+      failure_rate: 0,
+      revenue_recovery_rate: 0,
+      average_recovery_latency_seconds: 0,
     };
   }
 }
@@ -319,6 +319,154 @@ export async function fetchGlobalAudit(params?: {
       pagination: { limit: 50, offset: 0, returned: 0, next_offset: null },
     };
   }
+}
+
+// ==========================================
+// Admin & Global Reset
+// ==========================================
+
+export async function resetDashboard(): Promise<{
+  success: boolean;
+  message: string;
+  metadata?: any;
+  timestamp?: string;
+}> {
+  return request("/api/admin/reset-dashboard", { method: "POST" });
+}
+
+// ==========================================
+// Reports & Document Downloads
+// ==========================================
+
+export interface ReportSummary {
+  total_orders: number;
+  successful_payments: number;
+  failed_payments: number;
+  abandoned_payments: number;
+  revenue_at_risk: number;
+  ai_recovered: number;
+  human_recovered: number;
+  total_recovered: number;
+  recovery_rate: number;
+}
+
+export interface FailureAnalysis {
+  network_errors: number;
+  payment_timeouts: number;
+  authentication_failures: number;
+  abandonments: number;
+  other_failures: number;
+}
+
+export interface RecoveryAnalysis {
+  ai_recovery_cases: number;
+  human_recovery_cases: number;
+  high_risk_cases: number;
+  unresolved_cases: number;
+}
+
+export interface ReportTransactionItem {
+  transaction_id: string;
+  order_id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  failure_type: string;
+  diagnosis: string;
+  recovery_action: string;
+  recovery_method: string;
+  recovery_status: string;
+  recovered_amount?: number;
+  created_date: string;
+  updated_date?: string;
+}
+
+export interface ReportData {
+  summary: ReportSummary;
+  failure_analysis: FailureAnalysis;
+  recovery_analysis: RecoveryAnalysis;
+  executive_findings: string[];
+  transactions: ReportTransactionItem[];
+  generated_at: string;
+  filters?: Record<string, any>;
+}
+
+export interface ReportFilters {
+  date_from?: string;
+  date_to?: string;
+  status?: string;
+  failure_type?: string;
+  recovery_method?: string;
+}
+
+export async function fetchReportData(filters?: ReportFilters): Promise<ReportData> {
+  const query = new URLSearchParams();
+  if (filters?.date_from) query.set("date_from", filters.date_from);
+  if (filters?.date_to) query.set("date_to", filters.date_to);
+  if (filters?.status) query.set("status", filters.status);
+  if (filters?.failure_type) query.set("failure_type", filters.failure_type);
+  if (filters?.recovery_method) query.set("recovery_method", filters.recovery_method);
+
+  const queryString = query.toString();
+  return request<ReportData>(`/api/reports${queryString ? `?${queryString}` : ""}`);
+}
+
+export async function downloadReportPdf(filters?: ReportFilters): Promise<void> {
+  const base = getApiBase();
+  const query = new URLSearchParams();
+  if (filters?.date_from) query.set("date_from", filters.date_from);
+  if (filters?.date_to) query.set("date_to", filters.date_to);
+  if (filters?.status) query.set("status", filters.status);
+  if (filters?.failure_type) query.set("failure_type", filters.failure_type);
+  if (filters?.recovery_method) query.set("recovery_method", filters.recovery_method);
+
+  const queryString = query.toString();
+  const url = `${base}/api/reports/pdf${queryString ? `?${queryString}` : ""}`;
+
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Failed to download PDF report (${res.status} ${res.statusText})`);
+  }
+
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const curDate = new Date().toISOString().split("T")[0];
+  a.href = downloadUrl;
+  a.download = `ReviveAI_Revenue_Recovery_Report_${curDate}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(downloadUrl);
+  document.body.removeChild(a);
+}
+
+export async function downloadReportExcel(filters?: ReportFilters): Promise<void> {
+  const base = getApiBase();
+  const query = new URLSearchParams();
+  if (filters?.date_from) query.set("date_from", filters.date_from);
+  if (filters?.date_to) query.set("date_to", filters.date_to);
+  if (filters?.status) query.set("status", filters.status);
+  if (filters?.failure_type) query.set("failure_type", filters.failure_type);
+  if (filters?.recovery_method) query.set("recovery_method", filters.recovery_method);
+
+  const queryString = query.toString();
+  const url = `${base}/api/reports/excel${queryString ? `?${queryString}` : ""}`;
+
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Failed to download Excel report (${res.status} ${res.statusText})`);
+  }
+
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const curDate = new Date().toISOString().split("T")[0];
+  a.href = downloadUrl;
+  a.download = `ReviveAI_Revenue_Recovery_Report_${curDate}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(downloadUrl);
+  document.body.removeChild(a);
 }
 
 // ==========================================

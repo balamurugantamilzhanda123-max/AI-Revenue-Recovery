@@ -15,6 +15,7 @@ import {
   ShoppingBag,
   Store,
   Headset,
+  FileText,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -81,6 +82,13 @@ const NAV_ITEMS = [
     href: "/escalations",
     icon: UserCheck,
     badge: null,
+  },
+  {
+    name: "Reports",
+    href: "/reports",
+    icon: FileText,
+    badge: "Export",
+    badgeColor: "bg-indigo-50 text-indigo-600 border-indigo-200",
   },
   {
     name: "Audit & Compliance",

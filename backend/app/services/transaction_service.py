@@ -31,7 +31,14 @@ def get_transaction_by_ref(db: Session, transaction_ref: str) -> Transaction | N
             selectinload(Transaction.payment_attempts),
             selectinload(Transaction.recovery_cases),
         )
-        .where(or_(Transaction.id == transaction_ref, Transaction.transaction_id == transaction_ref))
+        .where(
+            or_(
+                Transaction.id == transaction_ref,
+                Transaction.transaction_id == transaction_ref,
+                Transaction.order_id == transaction_ref,
+                Transaction.customer_response == transaction_ref,
+            )
+        )
     ).first()
 
 

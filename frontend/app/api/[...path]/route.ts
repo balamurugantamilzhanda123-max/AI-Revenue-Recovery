@@ -943,6 +943,152 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     });
   }
 
+  // Single Transaction Detail
+  if (pathStr.startsWith("transactions/") && !pathStr.endsWith("/pdf")) {
+    const txnId = pathParts[pathParts.length - 1];
+    let matched = inMemoryTransactions.find(
+      (t) =>
+        t.transaction_id === txnId ||
+        t.id === txnId ||
+        t.order_id === txnId ||
+        t.recovery_token === txnId
+    );
+
+    // If not in inMemoryTransactions, check if audit trail has recorded events for this transaction
+    if (!matched) {
+      const auditEv = inMemoryAuditLogs.find(
+        (a) =>
+          a.transaction_id === txnId ||
+          a.metadata?.transaction_id === txnId ||
+          a.metadata?.order_id === txnId ||
+          (a.event_message && a.event_message.includes(txnId))
+      );
+      if (auditEv) {
+        const meta = auditEv.metadata || {};
+        matched = {
+          id: "tx_" + txnId,
+          transaction_id: txnId,
+          order_id: meta.order_id || `ORD-${txnId}`,
+          customer_id: "cust_active",
+          customer: {
+            name: meta.customer_name || "Rahul Kumar",
+            email: meta.customer_email || "rahul@example.com",
+            phone: meta.customer_phone || "+91 98765 43210",
+            status: "ACTIVE",
+          },
+          product_id: meta.product_id || "prod_laptop_biz_01",
+          product_name: meta.product_name || "VoltStore Electronics",
+          category: meta.category || "Electronics",
+          amount: Number(meta.amount || 65999),
+          currency: meta.currency || "INR",
+          status: (meta.status as any) || "FAILED",
+          payment_method: meta.payment_method || "UPI",
+          failure_reason:
+            meta.failure_reason ||
+            auditEv.event_message ||
+            "Authentication Handshake Failure (OTP Timeout / 3DS Error)",
+          gateway_response:
+            meta.gateway_response ||
+            auditEv.event_message ||
+            "Customer 3DS auth token expired before verification completed",
+          retry_count: Number(meta.retry_count || 0),
+          recovery_status: (meta.recovery_status as any) || "OPEN",
+          recovered_amount: Number(meta.recovered_amount || 0),
+          escalation_status: (meta.escalation_status as any) || "NONE",
+          recovery_token: meta.recovery_token || `rec_${txnId}`,
+          created_at: auditEv.created_at || new Date().toISOString(),
+          updated_at: auditEv.created_at || new Date().toISOString(),
+        };
+        inMemoryTransactions.unshift(matched);
+      }
+    }
+
+    if (matched) {
+      if (req.method === "PATCH") {
+        let body: any = {};
+        try {
+          body = await req.json();
+        } catch {}
+        Object.assign(matched, body);
+        matched.updated_at = new Date().toISOString();
+        return NextResponse.json(matched);
+      }
+
+      return NextResponse.json({
+        id: matched.id,
+        transaction_id: matched.transaction_id,
+        order_id: matched.order_id,
+        customer_id: matched.customer_id,
+        customer: matched.customer,
+        product_id: matched.product_id,
+        product_name: matched.product_name,
+        category: matched.category,
+        amount: matched.amount,
+        currency: matched.currency || "INR",
+        payment_method: matched.payment_method || "UPI",
+        status: matched.status,
+        failure_reason: matched.failure_reason,
+        gateway_response: matched.gateway_response,
+        retry_count: matched.retry_count,
+        recovery_status: matched.recovery_status,
+        recovered_amount: matched.recovered_amount,
+        escalation_status: matched.escalation_status,
+        recovery_token: matched.recovery_token,
+        created_at: matched.created_at,
+        updated_at: matched.updated_at,
+        payment_attempts: [
+          {
+            id: "pa_1_" + matched.transaction_id,
+            transaction_id: matched.transaction_id,
+            attempt_number: 1,
+            status: "FAILED",
+            gateway_response: matched.gateway_response || matched.failure_reason,
+            created_at: matched.created_at,
+          },
+          ...(matched.retry_count >= 1
+            ? [
+                {
+                  id: "pa_2_" + matched.transaction_id,
+                  transaction_id: matched.transaction_id,
+                  attempt_number: 2,
+                  status: matched.status,
+                  gateway_response: matched.gateway_response,
+                  created_at: matched.updated_at,
+                },
+              ]
+            : []),
+        ],
+        recovery_cases: [
+          {
+            id: "case_" + matched.transaction_id,
+            transaction_id: matched.transaction_id,
+            risk_amount: matched.amount,
+            root_cause: (matched.failure_reason || "").toLowerCase().includes("timeout")
+              ? "payment_timeout"
+              : (matched.failure_reason || "").toLowerCase().includes("auth")
+              ? "authentication_failure"
+              : "technical_failure",
+            confidence: 0.94,
+            evidence: [matched.failure_reason || "Payment failure telemetry captured"],
+            recommended_action: "controlled_retry",
+            action_status: "POLICY_APPROVED",
+            recovery_status: matched.recovery_status,
+            recovered_amount: matched.recovered_amount,
+            policy_result: {
+              allowed: matched.recovery_status !== "ESCALATED",
+              result: matched.recovery_status !== "ESCALATED" ? "APPROVED" : "BLOCKED",
+              reasons: ["Merchant automatic retry policy active"],
+            },
+            created_at: matched.created_at,
+            updated_at: matched.updated_at,
+          },
+        ],
+      });
+    }
+
+    return NextResponse.json({ detail: "Transaction not found." }, { status: 404 });
+  }
+
   // Revenue Risk list
   if (pathStr === "revenue-risk") {
     const riskCases = recoverableTxs.map((t) => ({
@@ -958,6 +1104,8 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       risk_level: t.amount >= 10000 ? "HIGH" : "MEDIUM",
       root_cause: (t.failure_reason || "").toLowerCase().includes("network")
         ? "technical_failure"
+        : (t.failure_reason || "").toLowerCase().includes("auth")
+        ? "authentication_failure"
         : "payment_timeout",
       recommended_action: "controlled_retry",
       recovered_amount: t.recovered_amount,
@@ -1002,17 +1150,162 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     );
   }
 
-  // Audit Logs
-  if (pathStr.startsWith("audit")) {
+  // Human Associate Cases
+  if (pathStr === "human-associate/cases") {
+    const escTxs = txs.filter(
+      (t) => t.escalation_status !== "NONE" || t.recovery_status === "ESCALATED"
+    );
+
+    const humanCases = escTxs.map((t) => ({
+      case_id: "case_" + t.transaction_id,
+      order_id: t.order_id,
+      transaction_id: t.transaction_id,
+      customer: {
+        id: t.customer_id,
+        name: t.customer?.name || "Valued Customer",
+        email: t.customer?.email || "customer@voltstore.in",
+        phone: t.customer?.phone || "+91 98765 43210",
+      },
+      product: {
+        id: t.product_id,
+        name: t.product_name,
+        category: t.category,
+      },
+      amount: t.amount,
+      currency: t.currency,
+      payment_attempts_count: t.retry_count + 1,
+      payment_attempts: [
+        {
+          attempt_number: 1,
+          status: "FAILED",
+          gateway_response: t.gateway_response || t.failure_reason || "Gateway failure",
+          created_at: t.created_at,
+        },
+        ...(t.retry_count >= 1
+          ? [
+              {
+                attempt_number: 2,
+                status: "FAILED",
+                gateway_response: "Second payment retry attempt failed. Auto-recovery halted.",
+                created_at: t.updated_at,
+              },
+            ]
+          : []),
+      ],
+      failure_reason: t.failure_reason || "Payment retry limit reached",
+      is_network_error: (t.failure_reason || "").toLowerCase().includes("network"),
+      ai_diagnosis: `Root cause: ${t.failure_reason || "Payment Failure"}. Automatic retry policy halted after ${t.retry_count} failed attempt(s).`,
+      ai_recommendation: "Contact customer directly, verify bank status, or offer assisted payment channel.",
+      priority: t.amount >= 50000 ? "CRITICAL" : t.amount >= 10000 ? "HIGH" : "MEDIUM",
+      risk_level: t.amount >= 50000 ? "CRITICAL" : "HIGH",
+      revenue_at_risk: t.amount,
+      case_status:
+        t.escalation_status === "RESOLVED"
+          ? "RESOLVED"
+          : t.escalation_status === "IN_REVIEW"
+          ? "IN_REVIEW"
+          : "OPEN",
+      created_at: t.created_at,
+      resolved_at: t.escalation_status === "RESOLVED" ? t.updated_at : null,
+      action_history: [
+        {
+          action: "ESCALATED_FROM_RETRY_FAILURE",
+          notes: "Automated retry limit reached. Forwarded to Human Associate.",
+          timestamp: t.created_at,
+        },
+      ],
+      recovery_token: t.recovery_token || `token_${t.transaction_id}`,
+    }));
+
+    return NextResponse.json(humanCases);
+  }
+
+  // Human Associate Actions
+  if (pathStr.startsWith("human-associate/cases/") && pathStr.endsWith("/contact")) {
+    const parts = pathStr.split("/");
+    const caseId = parts[2];
+    const txnId = caseId.replace("case_", "");
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {}
+    const matched = inMemoryTransactions.find((t) => t.transaction_id === txnId || t.id === txnId);
+    if (matched) {
+      matched.escalation_status = "IN_REVIEW";
+      matched.updated_at = new Date().toISOString();
+    }
     return NextResponse.json({
-      data: inMemoryAuditLogs,
-      events: inMemoryAuditLogs,
-      count: inMemoryAuditLogs.length,
-      total_count: inMemoryAuditLogs.length,
+      success: true,
+      case_id: caseId,
+      status: "IN_REVIEW",
+      message: `Contact logged via ${body.channel || "PHONE"}. Status updated to IN_REVIEW.`,
+    });
+  }
+
+  if (pathStr.startsWith("human-associate/cases/") && pathStr.endsWith("/send-link")) {
+    const parts = pathStr.split("/");
+    const caseId = parts[2];
+    const txnId = caseId.replace("case_", "");
+    const matched = inMemoryTransactions.find((t) => t.transaction_id === txnId || t.id === txnId);
+    const token = matched?.recovery_token || `rec_${txnId}`;
+    return NextResponse.json({
+      success: true,
+      case_id: caseId,
+      recovery_token: token,
+      payment_link: `/payment/retry/${token}`,
+      message: "Approved recovery payment link generated and dispatched.",
+    });
+  }
+
+  if (pathStr.startsWith("human-associate/cases/") && pathStr.endsWith("/complete-payment")) {
+    const parts = pathStr.split("/");
+    const caseId = parts[2];
+    const txnId = caseId.replace("case_", "");
+    const matched = inMemoryTransactions.find((t) => t.transaction_id === txnId || t.id === txnId);
+    if (matched) {
+      matched.status = "SUCCESS";
+      matched.recovery_status = "RECOVERED";
+      matched.recovered_amount = matched.amount;
+      matched.escalation_status = "RESOLVED";
+      matched.customer_response = "RECOVERED_BY_HUMAN";
+      matched.updated_at = new Date().toISOString();
+    }
+    return NextResponse.json({
+      success: true,
+      case_id: caseId,
+      status: "RESOLVED",
+      recovered_amount: matched?.amount || 0,
+      message: "Human Associate successfully completed customer payment recovery.",
+    });
+  }
+
+  // Audit Logs (with transaction filter support)
+  if (pathStr.startsWith("audit")) {
+    const targetTxId = pathParts.length > 1 ? pathParts[1] : req.nextUrl.searchParams.get("transaction_id");
+    let logs = inMemoryAuditLogs;
+    if (targetTxId) {
+      const filtered = inMemoryAuditLogs.filter(
+        (a) =>
+          a.transaction_id === targetTxId ||
+          a.metadata?.transaction_id === targetTxId ||
+          a.metadata?.order_id === targetTxId ||
+          (a.event_message && a.event_message.includes(targetTxId))
+      );
+      if (filtered.length > 0) {
+        logs = filtered;
+      }
+    }
+
+    return NextResponse.json({
+      transaction_id: targetTxId || undefined,
+      data: logs,
+      events: logs,
+      count: logs.length,
+      total_count: logs.length,
       pagination: {
         limit: 50,
         offset: 0,
-        returned: inMemoryAuditLogs.length,
+        returned: logs.length,
         next_offset: null,
       },
     });

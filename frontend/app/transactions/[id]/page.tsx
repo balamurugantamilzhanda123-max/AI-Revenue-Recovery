@@ -76,6 +76,9 @@ export default function TransactionDetailPage() {
         fetchTransactionDetail(transactionId),
         fetchTransactionAudit(transactionId),
       ]);
+      if (!txData || !txData.transaction_id || txData.status === undefined) {
+        throw new Error(`Transaction ${transactionId} not found.`);
+      }
       setTransaction(txData);
       setAuditEvents(auditData.events || []);
 

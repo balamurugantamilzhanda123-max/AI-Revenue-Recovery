@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   FileCheck,
   X,
+  Headset,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -152,15 +153,24 @@ export default function EscalationsPage() {
                       </p>
                     </div>
 
-                    {!isResolved && (
-                      <button
-                        onClick={() => handleOpenResolveModal(esc)}
-                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold font-mono text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href="/human-associate"
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold font-mono text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95"
                       >
-                        <FileCheck className="w-4 h-4" />
-                        <span>Resolve Case</span>
-                      </button>
-                    )}
+                        <Headset className="w-4 h-4" />
+                        <span>Human Recovery Workspace</span>
+                      </Link>
+                      {!isResolved && (
+                        <button
+                          onClick={() => handleOpenResolveModal(esc)}
+                          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold font-mono text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95"
+                        >
+                          <FileCheck className="w-4 h-4" />
+                          <span>Resolve Case</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Details Body */}

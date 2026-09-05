@@ -255,15 +255,19 @@ export default function TransactionDetailPage() {
                         <Bot className="w-4 h-4" />
                         <span>{actionLoading ? "Diagnosing..." : "Run AI Diagnosis"}</span>
                       </button>
+                    ) : (policy?.allowed === false || transaction.escalation_status === "OPEN" || transaction.escalation_status === "IN_REVIEW" || transaction.retry_count >= 1) ? (
+                      <Link
+                        href="/human-associate"
+                        className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold font-mono text-xs shadow-md transition-all flex items-center gap-2 active:scale-95"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Human Associate Recovery Workspace</span>
+                      </Link>
                     ) : (
                       <button
                         onClick={() => setConfirmModalOpen(true)}
-                        disabled={actionLoading || policy?.allowed === false}
-                        className={`px-5 py-2.5 rounded-xl font-bold font-mono text-xs transition-all flex items-center gap-2 disabled:opacity-50 ${
-                          policy?.allowed === false
-                            ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-                            : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:scale-105"
-                        }`}
+                        disabled={actionLoading}
+                        className="px-5 py-2.5 rounded-xl font-bold font-mono text-xs transition-all flex items-center gap-2 disabled:opacity-50 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:scale-105"
                       >
                         <Play className="w-4 h-4 fill-current" />
                         <span>{actionLoading ? "Executing..." : "Start Controlled Retry"}</span>

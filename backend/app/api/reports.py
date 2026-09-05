@@ -60,8 +60,8 @@ def download_pdf_report(
         recovery_method=recovery_method,
     )
     pdf_bytes = generate_report_pdf(report_data)
-    cur_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d_%H-%M")
-    filename = f"ReviveAI_Revenue_Recovery_Report_{cur_time}.pdf"
+    cur_date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    filename = f"ReviveAI_Revenue_Recovery_Report_{cur_date}.pdf"
 
     return Response(
         content=pdf_bytes,
@@ -95,8 +95,8 @@ def download_excel_report(
         recovery_method=recovery_method,
     )
     excel_bytes = generate_report_excel(report_data)
-    cur_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d_%H-%M")
-    filename = f"ReviveAI_Revenue_Recovery_Report_{cur_time}.xlsx"
+    cur_date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    filename = f"ReviveAI_Revenue_Recovery_Report_{cur_date}.xlsx"
 
     return Response(
         content=excel_bytes,

@@ -1149,16 +1149,13 @@ def generate_report_excel(report_data: dict[str, Any]) -> bytes:
     tx_headers = [
         "Transaction ID",
         "Order ID",
-        "Customer Name",
-        "Amount (INR)",
+        "Amount",
         "Status",
         "Failure Type",
-        "Risk Level",
-        "AI Diagnosis",
+        "Diagnosis",
         "Recovery Action",
         "Recovery Method",
         "Recovery Status",
-        "Recovered Amount (INR)",
         "Created At",
         "Updated At",
     ]
@@ -1173,28 +1170,25 @@ def generate_report_excel(report_data: dict[str, Any]) -> bytes:
         ws2.append([
             t.get("transaction_id", ""),
             t.get("order_id", ""),
-            t.get("customer_name", ""),
             t.get("amount", 0),
             t.get("status", ""),
             t.get("failure_type", ""),
-            t.get("risk_level", ""),
             t.get("diagnosis", ""),
             t.get("recovery_action", ""),
             t.get("recovery_method", ""),
             t.get("recovery_status", ""),
-            t.get("recovered_amount", 0),
             t.get("created_date", ""),
             t.get("updated_date", ""),
         ])
 
-    for row in ws2.iter_rows(min_row=2, max_row=ws2.max_row, min_col=1, max_col=len(tx_headers)):
+    for row in ws2.iter_rows(min_row=2, max_row=max(ws2.max_row, 2), min_col=1, max_col=len(tx_headers)):
         for cell in row:
             cell.border = thin_border
             cell.font = normal_font
-            if cell.column in [4, 12] and isinstance(cell.value, (int, float)):
+            if cell.column == 3 and isinstance(cell.value, (int, float)):
                 cell.number_format = '"₹"#,##0.00'
 
-    for col in ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]:
+    for col in ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"]:
         ws2.column_dimensions[col].width = 20
 
     # ============================================================
@@ -1205,49 +1199,46 @@ def generate_report_excel(report_data: dict[str, Any]) -> bytes:
     ws3.freeze_panes = "A2"
 
     rec_headers = [
-        "Recovery Channel",
-        "Cases Handled",
-        "Amount Recovered (INR)",
-        "Recovery Contribution Rate",
+        "Recovery ID",
+        "Transaction ID",
+        "Amount",
+        "Method",
+        "Action",
+        "Status",
+        "AI/Human",
+        "Created At",
     ]
     ws3.append(rec_headers)
     for col_idx in range(1, len(rec_headers) + 1):
         cell = ws3.cell(row=1, column=col_idx)
         cell.fill = header_fill
         cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
 
-    tot_rec = summary.get("total_recovered", 0)
-    ai_rec = summary.get("ai_recovered", 0)
-    hum_rec = summary.get("human_recovered", 0)
+    for idx, t in enumerate(tx_list, start=1):
+        if t.get("status") != "SUCCESS" or (t.get("recovered_amount", 0) > 0) or t.get("recovery_status") != "NOT_STARTED":
+            rec_id = f"REC-{t.get('transaction_id', f'{idx:04d}')}"
+            is_human = "Human" in str(t.get("recovery_method", ""))
+            ws3.append([
+                rec_id,
+                t.get("transaction_id", ""),
+                t.get("amount", 0),
+                t.get("recovery_method", "AI Autonomous Agent"),
+                t.get("recovery_action", "Smart Retry"),
+                t.get("recovery_status", "OPEN"),
+                "Human" if is_human else "AI",
+                t.get("created_date", ""),
+            ])
 
-    ws3.append([
-        "AI Autonomous Engine",
-        rec.get("ai_recovery_cases", 0),
-        ai_rec,
-        f"{(ai_rec / tot_rec * 100):.1f}%" if tot_rec > 0 else "0.0%",
-    ])
-    ws3.append([
-        "Human Associate Queue",
-        rec.get("human_recovery_cases", 0),
-        hum_rec,
-        f"{(hum_rec / tot_rec * 100):.1f}%" if tot_rec > 0 else "0.0%",
-    ])
-    ws3.append([
-        "Total System Recovery",
-        rec.get("ai_recovery_cases", 0) + rec.get("human_recovery_cases", 0),
-        tot_rec,
-        "100.0%",
-    ])
-
-    for row in ws3.iter_rows(min_row=2, max_row=4, min_col=1, max_col=4):
+    for row in ws3.iter_rows(min_row=2, max_row=max(ws3.max_row, 2), min_col=1, max_col=len(rec_headers)):
         for cell in row:
             cell.border = thin_border
-            cell.font = bold_font if cell.row == 4 else normal_font
+            cell.font = normal_font
             if cell.column == 3 and isinstance(cell.value, (int, float)):
                 cell.number_format = '"₹"#,##0.00'
 
-    for col in ["A", "B", "C", "D"]:
-        ws3.column_dimensions[col].width = 26
+    for col in ["A", "B", "C", "D", "E", "F", "G", "H"]:
+        ws3.column_dimensions[col].width = 22
 
     # ============================================================
     # Sheet 4: Risk Analysis
@@ -1257,34 +1248,39 @@ def generate_report_excel(report_data: dict[str, Any]) -> bytes:
     ws4.freeze_panes = "A2"
 
     risk_headers = [
-        "Failure Type / Driver",
-        "Total Cases",
-        "Revenue at Risk (INR)",
-        "Recovered Revenue (INR)",
-        "Unresolved Revenue (INR)",
-        "Recovery Rate (%)",
+        "Transaction ID",
+        "Amount",
+        "Risk Level",
+        "Failure Type",
+        "Status",
+        "Resolution",
     ]
     ws4.append(risk_headers)
     for col_idx in range(1, len(risk_headers) + 1):
         cell = ws4.cell(row=1, column=col_idx)
         cell.fill = header_fill
         cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
 
-    for fr in fail_breakdown:
-        ws4.append([
-            fr["failure_type"],
-            fr["cases"],
-            fr["revenue_at_risk"],
-            fr["recovered"],
-            fr["unresolved"],
-            f"{fr['recovery_rate']}%",
-        ])
+    for t in tx_list:
+        if t.get("status") in {"FAILED", "ABANDONED", "UNRESOLVED"} or t.get("recovery_status") != "NOT_STARTED":
+            res_str = "RECOVERED" if t.get("recovery_status") == "RECOVERED" else (
+                "ESCALATED_TO_HUMAN" if t.get("recovery_status") == "ESCALATED" else "PENDING_RECOVERY"
+            )
+            ws4.append([
+                t.get("transaction_id", ""),
+                t.get("amount", 0),
+                t.get("risk_level", "MEDIUM"),
+                t.get("failure_type", "Payment Failure"),
+                t.get("status", ""),
+                res_str,
+            ])
 
-    for row in ws4.iter_rows(min_row=2, max_row=ws4.max_row, min_col=1, max_col=6):
+    for row in ws4.iter_rows(min_row=2, max_row=max(ws4.max_row, 2), min_col=1, max_col=len(risk_headers)):
         for cell in row:
             cell.border = thin_border
             cell.font = normal_font
-            if cell.column in [3, 4, 5] and isinstance(cell.value, (int, float)):
+            if cell.column == 2 and isinstance(cell.value, (int, float)):
                 cell.number_format = '"₹"#,##0.00'
 
     for col in ["A", "B", "C", "D", "E", "F"]:

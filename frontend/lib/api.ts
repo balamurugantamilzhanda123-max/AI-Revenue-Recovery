@@ -1165,9 +1165,7 @@ export async function downloadReportPdf(filters?: ReportFilters): Promise<void> 
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const filename = `ReviveAI_Revenue_Recovery_Report_${year}-${month}-${day}_${hours}-${minutes}.pdf`;
+  const filename = `ReviveAI_Revenue_Recovery_Report_${year}-${month}-${day}.pdf`;
 
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1205,9 +1203,7 @@ export async function downloadReportExcel(filters?: ReportFilters): Promise<void
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const filename = `ReviveAI_Revenue_Recovery_Report_${year}-${month}-${day}_${hours}-${minutes}.xlsx`;
+  const filename = `ReviveAI_Revenue_Recovery_Report_${year}-${month}-${day}.xlsx`;
 
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");

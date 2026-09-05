@@ -1426,6 +1426,49 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
   }
 
   // Escalations
+  if (
+    (pathStr.startsWith("escalations/") && pathStr.endsWith("/resolve")) ||
+    (pathStr.startsWith("escalations/") && req.method === "PATCH")
+  ) {
+    const parts = pathStr.split("/");
+    const escId = parts[1];
+    const txnId = escId.replace("esc_", "");
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {}
+    const matched = inMemoryTransactions.find(
+      (t) => t.transaction_id === txnId || t.id === txnId || t.order_id === txnId
+    );
+    const nowIso = new Date().toISOString();
+    if (matched) {
+      matched.escalation_status = "RESOLVED";
+      matched.updated_at = nowIso;
+
+      inMemoryAuditLogs.unshift({
+        id: "audit_esc_res_" + Math.random().toString(36).substring(2, 8),
+        transaction_id: matched.transaction_id,
+        event_type: "HUMAN_ESCALATION_RESOLVED",
+        event_message: `Human escalation resolved for ${matched.transaction_id}: ${body.resolution || "Case marked resolved"}`,
+        actor: "Support Associate",
+        metadata: { resolution: body.resolution || "Resolved", case_id: escId },
+        created_at: nowIso,
+        timestamp: nowIso,
+      });
+    }
+
+    return NextResponse.json({
+      message: "Escalation case resolved successfully.",
+      escalation: {
+        id: escId,
+        transaction_id: matched?.transaction_id || txnId,
+        status: "RESOLVED",
+        resolution: body.resolution || "Resolved",
+        resolved_at: nowIso,
+      },
+    });
+  }
+
   if (pathStr === "escalations") {
     const escTxs = txs.filter((t) => t.escalation_status !== "NONE" || t.recovery_status === "ESCALATED");
     return NextResponse.json(
@@ -1445,7 +1488,7 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
   // Human Associate Cases
   if (pathStr === "human-associate/cases") {
     const escTxs = txs.filter(
-      (t) => t.escalation_status !== "NONE" || t.recovery_status === "ESCALATED"
+      (t) => t.escalation_status !== "NONE" || t.recovery_status === "ESCALATED" || t.customer_response === "RECOVERED_BY_HUMAN"
     );
 
     const humanCases = escTxs.map((t) => ({
@@ -1477,8 +1520,11 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
           ? [
               {
                 attempt_number: 2,
-                status: "FAILED",
-                gateway_response: "Second payment retry attempt failed. Auto-recovery halted.",
+                status: t.status === "SUCCESS" && t.customer_response === "RECOVERED_BY_HUMAN" ? "SUCCESS" : "FAILED",
+                gateway_response:
+                  t.status === "SUCCESS" && t.customer_response === "RECOVERED_BY_HUMAN"
+                    ? "Payment captured successfully on human-assisted retry (Sandbox)"
+                    : "Second payment retry attempt failed. Auto-recovery halted.",
                 created_at: t.updated_at,
               },
             ]
@@ -1490,7 +1536,7 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       ai_recommendation: "Contact customer directly, verify bank status, or offer assisted payment channel.",
       priority: t.amount >= 50000 ? "CRITICAL" : t.amount >= 10000 ? "HIGH" : "MEDIUM",
       risk_level: t.amount >= 50000 ? "CRITICAL" : "HIGH",
-      revenue_at_risk: t.amount,
+      revenue_at_risk: t.status === "SUCCESS" ? 0 : t.amount,
       case_status:
         t.escalation_status === "RESOLVED"
           ? "RESOLVED"
@@ -1505,6 +1551,16 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
           notes: "Automated retry limit reached. Forwarded to Human Associate.",
           timestamp: t.created_at,
         },
+        ...(t.status === "SUCCESS" && t.customer_response === "RECOVERED_BY_HUMAN"
+          ? [
+              {
+                action: "CASE_RESOLVED_PAYMENT_SUCCESS",
+                notes: "Customer completed payment successfully using human-assisted link.",
+                recovered_amount: t.recovered_amount,
+                timestamp: t.updated_at,
+              },
+            ]
+          : []),
       ],
       recovery_token: t.recovery_token || `token_${t.transaction_id}`,
     }));
@@ -1516,15 +1572,27 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
   if (pathStr.startsWith("human-associate/cases/") && pathStr.endsWith("/contact")) {
     const parts = pathStr.split("/");
     const caseId = parts[2];
-    const txnId = caseId.replace("case_", "");
+    const txnId = caseId.replace("case_", "").replace("esc_", "");
     let body: any = {};
     try {
       body = await req.json();
     } catch {}
-    const matched = inMemoryTransactions.find((t) => t.transaction_id === txnId || t.id === txnId);
+    const matched = inMemoryTransactions.find((t) => t.transaction_id === txnId || t.id === txnId || t.order_id === txnId);
+    const nowIso = new Date().toISOString();
     if (matched) {
       matched.escalation_status = "IN_REVIEW";
-      matched.updated_at = new Date().toISOString();
+      matched.updated_at = nowIso;
+
+      inMemoryAuditLogs.unshift({
+        id: "audit_contact_" + Math.random().toString(36).substring(2, 8),
+        transaction_id: matched.transaction_id,
+        event_type: "HUMAN_CUSTOMER_CONTACTED",
+        event_message: `Human associate contacted customer via ${body.channel || "PHONE"}: ${body.notes || "Call logged"}`,
+        actor: body.agent_name || "Human Associate",
+        metadata: { channel: body.channel || "PHONE", notes: body.notes, order_id: matched.order_id },
+        created_at: nowIso,
+        timestamp: nowIso,
+      });
     }
     return NextResponse.json({
       success: true,
@@ -1537,14 +1605,30 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
   if (pathStr.startsWith("human-associate/cases/") && pathStr.endsWith("/send-link")) {
     const parts = pathStr.split("/");
     const caseId = parts[2];
-    const txnId = caseId.replace("case_", "");
-    const matched = inMemoryTransactions.find((t) => t.transaction_id === txnId || t.id === txnId);
+    const txnId = caseId.replace("case_", "").replace("esc_", "");
+    const matched = inMemoryTransactions.find((t) => t.transaction_id === txnId || t.id === txnId || t.order_id === txnId);
     const token = matched?.recovery_token || `rec_${txnId}`;
+    const nowIso = new Date().toISOString();
+    if (matched) {
+      matched.escalation_status = "IN_REVIEW";
+      matched.updated_at = nowIso;
+
+      inMemoryAuditLogs.unshift({
+        id: "audit_sendlink_" + Math.random().toString(36).substring(2, 8),
+        transaction_id: matched.transaction_id,
+        event_type: "HUMAN_PAYMENT_LINK_SENT",
+        event_message: `Human associate dispatched approved recovery link for Order ${matched.order_id}`,
+        actor: "Human Associate",
+        metadata: { order_id: matched.order_id, token, link: `/pay/recover/${token}` },
+        created_at: nowIso,
+        timestamp: nowIso,
+      });
+    }
     return NextResponse.json({
       success: true,
       case_id: caseId,
       recovery_token: token,
-      payment_link: `/payment/retry/${token}`,
+      payment_link: `/pay/recover/${token}`,
       message: "Approved recovery payment link generated and dispatched.",
     });
   }
@@ -1552,22 +1636,66 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
   if (pathStr.startsWith("human-associate/cases/") && pathStr.endsWith("/complete-payment")) {
     const parts = pathStr.split("/");
     const caseId = parts[2];
-    const txnId = caseId.replace("case_", "");
-    const matched = inMemoryTransactions.find((t) => t.transaction_id === txnId || t.id === txnId);
+    const txnId = caseId.replace("case_", "").replace("esc_", "");
+    const matched = inMemoryTransactions.find((t) => t.transaction_id === txnId || t.id === txnId || t.order_id === txnId);
+    const nowIso = new Date().toISOString();
     if (matched) {
-      matched.status = "SUCCESS";
-      matched.recovery_status = "RECOVERED";
-      matched.recovered_amount = matched.amount;
-      matched.escalation_status = "RESOLVED";
-      matched.customer_response = "RECOVERED_BY_HUMAN";
-      matched.updated_at = new Date().toISOString();
+      // Idempotency: only mutate if not already recovered
+      const wasAlreadyRecovered = matched.status === "SUCCESS" && matched.recovery_status === "RECOVERED";
+      if (!wasAlreadyRecovered) {
+        matched.status = "SUCCESS";
+        matched.recovery_status = "RECOVERED";
+        matched.recovered_amount = matched.amount;
+        matched.escalation_status = "RESOLVED";
+        matched.customer_response = "RECOVERED_BY_HUMAN";
+        matched.failure_reason = null;
+        matched.gateway_response = "Payment captured successfully via Human Associate Support (Sandbox)";
+        matched.retry_count = Math.max(matched.retry_count, 1);
+        matched.updated_at = nowIso;
+
+        inMemoryAuditLogs.unshift({
+          id: "audit_human_" + Math.random().toString(36).substring(2, 8),
+          transaction_id: matched.transaction_id,
+          event_type: "PAYMENT_SUCCESS",
+          event_message: `Payment captured successfully via Human Support for Order ${matched.order_id}`,
+          actor: "payment-gateway",
+          metadata: { order_id: matched.order_id, amount: matched.amount, recovery_channel: "HUMAN_ASSOCIATE" },
+          created_at: nowIso,
+          timestamp: nowIso,
+        });
+
+        inMemoryAuditLogs.unshift({
+          id: "audit_human_rec_" + Math.random().toString(36).substring(2, 8),
+          transaction_id: matched.transaction_id,
+          event_type: "HUMAN_REVENUE_RECOVERED",
+          event_message: `Revenue recovered by Human Associate: INR ${matched.amount.toFixed(2)}`,
+          actor: "Human Associate",
+          metadata: { recovered_amount: matched.amount, currency: matched.currency || "INR", order_id: matched.order_id },
+          created_at: nowIso,
+          timestamp: nowIso,
+        });
+
+        inMemoryAuditLogs.unshift({
+          id: "audit_human_esc_" + Math.random().toString(36).substring(2, 8),
+          transaction_id: matched.transaction_id,
+          event_type: "HUMAN_ESCALATION_RESOLVED",
+          event_message: `Escalation case ${caseId} marked RESOLVED after successful payment capture`,
+          actor: "Human Associate",
+          metadata: { order_id: matched.order_id, case_id: caseId },
+          created_at: nowIso,
+          timestamp: nowIso,
+        });
+      }
     }
     return NextResponse.json({
       success: true,
       case_id: caseId,
+      order_id: matched?.order_id,
+      transaction_id: matched?.transaction_id || txnId,
       status: "RESOLVED",
       recovered_amount: matched?.amount || 0,
-      message: "Human Associate successfully completed customer payment recovery.",
+      message: `Case resolved! ₹${(matched?.amount || 0).toLocaleString("en-IN")} recovered successfully by Human Associate.`,
+      transaction: matched,
     });
   }
 

@@ -187,6 +187,10 @@ export interface RecoveryStartResponse {
   action_id?: string;
   execution_result?: Record<string, any>;
   escalation_id?: string;
+  payment_status?: string;
+  recovery_status?: string;
+  recovered_amount?: number;
+  transaction?: Transaction | any;
 }
 
 export interface EscalationCase {

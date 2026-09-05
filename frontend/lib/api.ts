@@ -270,10 +270,26 @@ export async function startRecoveryWorkflow(
     force_payment_result?: "SUCCESS" | "FAILED";
   }
 ): Promise<RecoveryStartResponse> {
-  return request<RecoveryStartResponse>(`/api/recovery/start/${encodeURIComponent(transactionId)}`, {
+  const res = await request<RecoveryStartResponse>(`/api/recovery/start/${encodeURIComponent(transactionId)}`, {
     method: "POST",
     body: JSON.stringify(options || {}),
   });
+  if (res) {
+    if ((res as any).transaction) {
+      addOrUpdateLocalTransaction((res as any).transaction);
+    } else {
+      const isSucc = res.payment_status === "SUCCESS" || res.recovery_status === "RECOVERED";
+      addOrUpdateLocalTransaction({
+        transaction_id: transactionId,
+        status: isSucc ? "SUCCESS" : "FAILED",
+        recovery_status: res.recovery_status || (isSucc ? "RECOVERED" : "ESCALATED"),
+        recovered_amount: isSucc ? (res.recovered_amount || 0) : 0,
+        escalation_status: isSucc ? "NONE" : "OPEN",
+        updated_at: new Date().toISOString(),
+      });
+    }
+  }
+  return res;
 }
 
 export async function retryPayment(
@@ -283,10 +299,26 @@ export async function retryPayment(
     force_result?: "SUCCESS" | "FAILED";
   }
 ): Promise<RecoveryStartResponse> {
-  return request<RecoveryStartResponse>(`/api/payments/retry/${encodeURIComponent(transactionId)}`, {
+  const res = await request<RecoveryStartResponse>(`/api/payments/retry/${encodeURIComponent(transactionId)}`, {
     method: "POST",
     body: JSON.stringify(options || {}),
   });
+  if (res) {
+    if ((res as any).transaction) {
+      addOrUpdateLocalTransaction((res as any).transaction);
+    } else {
+      const isSucc = res.payment_status === "SUCCESS" || res.recovery_status === "RECOVERED";
+      addOrUpdateLocalTransaction({
+        transaction_id: transactionId,
+        status: isSucc ? "SUCCESS" : "FAILED",
+        recovery_status: res.recovery_status || (isSucc ? "RECOVERED" : "ESCALATED"),
+        recovered_amount: isSucc ? (res.recovered_amount || 0) : 0,
+        escalation_status: isSucc ? "NONE" : "OPEN",
+        updated_at: new Date().toISOString(),
+      });
+    }
+  }
+  return res;
 }
 
 export async function fetchRecoveryResult(transactionId: string): Promise<{
@@ -319,10 +351,17 @@ export async function resolveEscalation(
   escalationId: string,
   resolution: string
 ): Promise<{ message: string; escalation: EscalationCase }> {
-  return request(`/api/escalations/${encodeURIComponent(escalationId)}/resolve`, {
+  const res = await request<{ message: string; escalation: EscalationCase }>(`/api/escalations/${encodeURIComponent(escalationId)}/resolve`, {
     method: "PATCH",
     body: JSON.stringify({ resolution }),
   });
+  const txnId = res?.escalation?.transaction_id || escalationId.replace("esc_", "");
+  addOrUpdateLocalTransaction({
+    transaction_id: txnId,
+    escalation_status: "RESOLVED",
+    updated_at: new Date().toISOString(),
+  });
+  return res;
 }
 
 // ==========================================
@@ -1096,10 +1135,17 @@ export async function contactCustomerHuman(
     agent_name?: string;
   }
 ): Promise<any> {
-  return request(`/api/human-associate/cases/${encodeURIComponent(caseId)}/contact`, {
+  const res = await request(`/api/human-associate/cases/${encodeURIComponent(caseId)}/contact`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  const cleanId = caseId.replace("case_", "").replace("esc_", "");
+  addOrUpdateLocalTransaction({
+    transaction_id: cleanId,
+    escalation_status: "IN_REVIEW",
+    updated_at: new Date().toISOString(),
+  });
+  return res;
 }
 
 export async function sendHumanPaymentLink(
@@ -1110,20 +1156,44 @@ export async function sendHumanPaymentLink(
     agent_name?: string;
   }
 ): Promise<any> {
-  return request(`/api/human-associate/cases/${encodeURIComponent(caseId)}/send-link`, {
+  const res = await request<any>(`/api/human-associate/cases/${encodeURIComponent(caseId)}/send-link`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  const cleanId = caseId.replace("case_", "").replace("esc_", "");
+  addOrUpdateLocalTransaction({
+    transaction_id: cleanId,
+    escalation_status: "IN_REVIEW",
+    recovery_token: res?.recovery_token || res?.token,
+    updated_at: new Date().toISOString(),
+  });
+  return res;
 }
 
 export async function completeHumanPayment(
   caseId: string,
   payload?: { notes?: string }
 ): Promise<any> {
-  return request(`/api/human-associate/cases/${encodeURIComponent(caseId)}/complete-payment`, {
+  const res = await request<any>(`/api/human-associate/cases/${encodeURIComponent(caseId)}/complete-payment`, {
     method: "POST",
     body: JSON.stringify(payload || {}),
   });
+  if (res && res.transaction) {
+    addOrUpdateLocalTransaction(res.transaction);
+  } else if (res && res.recovered_amount !== undefined) {
+    const cleanId = caseId.replace("case_", "").replace("esc_", "");
+    addOrUpdateLocalTransaction({
+      transaction_id: res.transaction_id || cleanId,
+      order_id: res.order_id,
+      status: "SUCCESS",
+      recovery_status: "RECOVERED",
+      recovered_amount: res.recovered_amount,
+      escalation_status: "RESOLVED",
+      customer_response: "RECOVERED_BY_HUMAN",
+      updated_at: new Date().toISOString(),
+    });
+  }
+  return res;
 }
 
 // ==========================================

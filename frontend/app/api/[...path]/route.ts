@@ -1442,49 +1442,14 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     );
     const nowIso = new Date().toISOString();
     if (matched) {
-      const wasAlreadyRecovered = matched.status === "SUCCESS" && matched.recovery_status === "RECOVERED";
-      if (!wasAlreadyRecovered) {
-        matched.status = "SUCCESS";
-        matched.recovery_status = "RECOVERED";
-        matched.recovered_amount = matched.amount;
-        matched.escalation_status = "RESOLVED";
-        matched.customer_response = "RECOVERED_BY_HUMAN";
-        matched.failure_reason = null;
-        matched.gateway_response = body.resolution || "Payment captured successfully via Human Associate Support (Sandbox)";
-        matched.retry_count = Math.max(matched.retry_count, 1);
-        matched.updated_at = nowIso;
-
-        inMemoryAuditLogs.unshift({
-          id: "audit_human_" + Math.random().toString(36).substring(2, 8),
-          transaction_id: matched.transaction_id,
-          event_type: "PAYMENT_SUCCESS",
-          event_message: `Payment captured successfully via Human Support for Order ${matched.order_id}`,
-          actor: "payment-gateway",
-          metadata: { order_id: matched.order_id, amount: matched.amount, recovery_channel: "HUMAN_ASSOCIATE" },
-          created_at: nowIso,
-          timestamp: nowIso,
-        });
-
-        inMemoryAuditLogs.unshift({
-          id: "audit_human_rec_" + Math.random().toString(36).substring(2, 8),
-          transaction_id: matched.transaction_id,
-          event_type: "HUMAN_REVENUE_RECOVERED",
-          event_message: `Revenue recovered by Human Associate: INR ${matched.amount.toFixed(2)}`,
-          actor: "Human Associate",
-          metadata: { recovered_amount: matched.amount, currency: matched.currency || "INR", order_id: matched.order_id },
-          created_at: nowIso,
-          timestamp: nowIso,
-        });
-      } else {
-        matched.escalation_status = "RESOLVED";
-        matched.updated_at = nowIso;
-      }
+      matched.escalation_status = "RESOLVED";
+      matched.updated_at = nowIso;
 
       inMemoryAuditLogs.unshift({
         id: "audit_esc_res_" + Math.random().toString(36).substring(2, 8),
         transaction_id: matched.transaction_id,
         event_type: "HUMAN_ESCALATION_RESOLVED",
-        event_message: `Human escalation resolved for ${matched.transaction_id}: ${body.resolution || "Case marked resolved"}`,
+        event_message: `Human escalation case ${escId} resolved for ${matched.transaction_id}: ${body.resolution || "Case marked resolved"}`,
         actor: "Support Associate",
         metadata: { resolution: body.resolution || "Resolved", case_id: escId },
         created_at: nowIso,
@@ -1494,7 +1459,6 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
 
     return NextResponse.json({
       message: "Escalation case resolved successfully.",
-      recovered_amount: matched?.amount || 0,
       escalation: {
         id: escId,
         transaction_id: matched?.transaction_id || txnId,

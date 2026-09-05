@@ -90,51 +90,14 @@ def resolve_escalation(db: Session, escalation_id: str, resolution: str) -> dict
     transaction = escalation.transaction
     if transaction:
         transaction.escalation_status = EscalationStatus.RESOLVED
-        transaction.status = PaymentStatus.SUCCESS
-        transaction.recovery_status = RecoveryStatus.RECOVERED
-        transaction.recovered_amount = transaction.amount
-        transaction.customer_response = "RECOVERED_BY_HUMAN"
-        transaction.failure_reason = None
-        transaction.gateway_response = f"Recovered via Human Associate Support: {resolution}"
-
-        recovery_case = (
-            db.query(RecoveryCase)
-            .filter(RecoveryCase.transaction_id == transaction.id)
-            .order_by(RecoveryCase.created_at.desc())
-            .first()
-        )
-        if recovery_case:
-            recovery_case.recovery_status = RecoveryStatus.RECOVERED
-            recovery_case.recovered_amount = transaction.amount
-            recovery_case.success_timestamp = now_dt
-
-        record_audit_event(
-            db,
-            event_type="PAYMENT_SUCCESS",
-            event_message=f"Payment captured successfully via Human Support for Order {transaction.order_id}",
-            actor="payment-gateway",
-            transaction_id=transaction.id,
-            recovery_case_id=escalation.recovery_case_id,
-            metadata={"order_id": transaction.order_id, "amount": float(transaction.amount), "recovery_channel": "HUMAN_ASSOCIATE"},
-        )
-
-        record_audit_event(
-            db,
-            event_type="HUMAN_REVENUE_RECOVERED",
-            event_message=f"Revenue recovered by Human Associate: {transaction.currency} {float(transaction.amount):,.2f}",
-            actor="human-associate",
-            transaction_id=transaction.id,
-            recovery_case_id=escalation.recovery_case_id,
-            metadata={"recovered_amount": float(transaction.amount), "currency": transaction.currency, "order_id": transaction.order_id},
-        )
 
     record_audit_event(
         db,
         event_type="HUMAN_ESCALATION_RESOLVED",
-        event_message=f"Human escalation resolved: {resolution}",
+        event_message=f"Human escalation case {escalation.id} resolved: {resolution}",
         transaction_id=escalation.transaction_id,
         recovery_case_id=escalation.recovery_case_id,
-        metadata={"resolution": resolution},
+        metadata={"resolution": resolution, "case_id": escalation.id},
     )
     db.commit()
     return escalation_dict(escalation)

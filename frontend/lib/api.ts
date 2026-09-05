@@ -350,17 +350,32 @@ export async function fetchEscalations(): Promise<EscalationCase[]> {
 export async function resolveEscalation(
   escalationId: string,
   resolution: string
-): Promise<{ message: string; escalation: EscalationCase }> {
-  const res = await request<{ message: string; escalation: EscalationCase }>(`/api/escalations/${encodeURIComponent(escalationId)}/resolve`, {
+): Promise<{ message: string; escalation: EscalationCase; transaction?: any; recovered_amount?: number }> {
+  const res = await request<{ message: string; escalation: EscalationCase; transaction?: any; recovered_amount?: number }>(`/api/escalations/${encodeURIComponent(escalationId)}/resolve`, {
     method: "PATCH",
     body: JSON.stringify({ resolution }),
   });
-  const txnId = res?.escalation?.transaction_id || escalationId.replace("esc_", "");
-  addOrUpdateLocalTransaction({
-    transaction_id: txnId,
-    escalation_status: "RESOLVED",
-    updated_at: new Date().toISOString(),
-  });
+  if (res && res.transaction) {
+    addOrUpdateLocalTransaction(res.transaction);
+  } else {
+    const txnId = res?.escalation?.transaction_id || escalationId.replace("esc_", "");
+    const amt = (res as any)?.recovered_amount;
+    const localTxs = getLocalSyncedTransactions();
+    const existing = localTxs.find((t: any) => t.transaction_id === txnId || t.id === txnId);
+    const resolvedAmt = amt !== undefined && amt > 0 ? amt : (existing?.amount || 0);
+
+    addOrUpdateLocalTransaction({
+      transaction_id: txnId,
+      status: "SUCCESS",
+      recovery_status: "RECOVERED",
+      recovered_amount: resolvedAmt,
+      escalation_status: "RESOLVED",
+      customer_response: "RECOVERED_BY_HUMAN",
+      failure_reason: null,
+      gateway_response: resolution || "Payment captured successfully via Human Associate Support (Sandbox)",
+      updated_at: new Date().toISOString(),
+    });
+  }
   return res;
 }
 

@@ -1538,6 +1538,10 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       priority: t.amount >= 50000 ? "CRITICAL" : t.amount >= 10000 ? "HIGH" : "MEDIUM",
       risk_level: t.amount >= 50000 ? "CRITICAL" : "HIGH",
       revenue_at_risk: t.status === "SUCCESS" ? 0 : t.amount,
+      payment_status: t.status,
+      recovery_status: t.recovery_status,
+      recovered_amount: t.recovered_amount || (t.status === "SUCCESS" ? t.amount : 0),
+      escalation_status: t.escalation_status,
       case_status:
         t.escalation_status === "RESOLVED"
           ? "RESOLVED"
@@ -1566,7 +1570,19 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       recovery_token: t.recovery_token || `token_${t.transaction_id}`,
     }));
 
-    return NextResponse.json(humanCases);
+    const url = new URL(req.url);
+    const statusParam = url.searchParams.get("status");
+    const priorityParam = url.searchParams.get("priority");
+
+    let filteredCases = humanCases;
+    if (statusParam && statusParam !== "ALL") {
+      filteredCases = filteredCases.filter((c) => c.case_status === statusParam);
+    }
+    if (priorityParam && priorityParam !== "ALL") {
+      filteredCases = filteredCases.filter((c) => c.priority === priorityParam);
+    }
+
+    return NextResponse.json(filteredCases);
   }
 
   // Human Associate Actions

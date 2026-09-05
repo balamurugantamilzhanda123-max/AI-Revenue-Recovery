@@ -1113,6 +1113,10 @@ export interface HumanCase {
   priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   risk_level: string;
   revenue_at_risk: number;
+  payment_status?: string;
+  recovery_status?: string;
+  recovered_amount?: number;
+  escalation_status?: string;
   case_status: "OPEN" | "IN_REVIEW" | "RESOLVED";
   created_at: string;
   resolved_at?: string | null;

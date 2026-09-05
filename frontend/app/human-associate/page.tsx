@@ -145,12 +145,12 @@ export default function HumanAssociatePage() {
     }).format(val || 0);
   };
 
-  const openCasesCount = cases.filter((c) => c.case_status === "OPEN").length;
-  const inReviewCount = cases.filter((c) => c.case_status === "IN_REVIEW").length;
-  const resolvedCount = cases.filter((c) => c.case_status === "RESOLVED").length;
+  const openCasesCount = cases.filter((c) => c.case_status === "OPEN" && c.payment_status !== "SUCCESS").length;
+  const inReviewCount = cases.filter((c) => c.case_status === "IN_REVIEW" && c.payment_status !== "SUCCESS").length;
+  const resolvedCount = cases.filter((c) => c.case_status === "RESOLVED" || c.payment_status === "SUCCESS" || c.recovery_status === "RECOVERED").length;
   const totalRevenueAtRisk = cases
-    .filter((c) => c.case_status !== "RESOLVED")
-    .reduce((sum, c) => sum + c.amount, 0);
+    .filter((c) => c.payment_status !== "SUCCESS" && c.recovery_status !== "RECOVERED" && (c.recovered_amount ?? 0) <= 0)
+    .reduce((sum, c) => sum + (c.revenue_at_risk ?? c.amount), 0);
 
   return (
     <AppShell
@@ -321,14 +321,16 @@ export default function HumanAssociatePage() {
 
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                          c.case_status === "RESOLVED"
+                          c.payment_status === "SUCCESS" || c.recovery_status === "RECOVERED" || c.case_status === "RESOLVED"
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                             : c.case_status === "IN_REVIEW"
                             ? "bg-purple-50 text-purple-700 border-purple-200"
                             : "bg-rose-50 text-rose-700 border-rose-200"
                         }`}
                       >
-                        {c.case_status}
+                        {c.payment_status === "SUCCESS" || c.recovery_status === "RECOVERED"
+                          ? "RECOVERED"
+                          : c.case_status}
                       </span>
                     </div>
                   </div>
@@ -361,8 +363,20 @@ export default function HumanAssociatePage() {
                   <div className="text-lg font-extrabold text-slate-900">
                     {formatCurrency(selectedCase.amount)}
                   </div>
-                  <span className="text-[10px] text-rose-600 font-bold uppercase">
-                    Revenue at Risk
+                  <span
+                    className={`text-[10px] font-bold uppercase ${
+                      selectedCase.payment_status === "SUCCESS" ||
+                      selectedCase.recovery_status === "RECOVERED" ||
+                      (selectedCase.recovered_amount ?? 0) > 0
+                        ? "text-emerald-600"
+                        : "text-rose-600"
+                    }`}
+                  >
+                    {selectedCase.payment_status === "SUCCESS" ||
+                    selectedCase.recovery_status === "RECOVERED" ||
+                    (selectedCase.recovered_amount ?? 0) > 0
+                      ? "Revenue Recovered"
+                      : "Revenue at Risk"}
                   </span>
                 </div>
               </div>
@@ -488,18 +502,27 @@ export default function HumanAssociatePage() {
                   <span>{formatCurrency(selectedCase.amount)}</span>
                 </div>
                 <p className="text-[11px] text-emerald-800 font-mono">
-                  Test customer completing payment via human assistance. Confirms order and marks case RESOLVED.
+                  Test customer completing payment via human assistance. Captures payment, records recovered revenue, and marks case RESOLVED.
                 </p>
 
-                <button
-                  onClick={handleCompletePaymentSimulation}
-                  disabled={actionLoading || selectedCase.case_status === "RESOLVED"}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-200 text-white font-mono font-extrabold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/20 active:scale-95"
-                >
-                  {selectedCase.case_status === "RESOLVED"
-                    ? "Case Already Resolved"
-                    : `Mark Resolved & Recover ${formatCurrency(selectedCase.amount)}`}
-                </button>
+                {(() => {
+                  const isPaymentRecovered =
+                    selectedCase.payment_status === "SUCCESS" ||
+                    selectedCase.recovery_status === "RECOVERED" ||
+                    (selectedCase.recovered_amount ?? 0) > 0;
+
+                  return (
+                    <button
+                      onClick={handleCompletePaymentSimulation}
+                      disabled={actionLoading || isPaymentRecovered}
+                      className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-200 text-white font-mono font-extrabold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/20 active:scale-95"
+                    >
+                      {isPaymentRecovered
+                        ? "Payment Already Captured & Recovered"
+                        : `Mark Resolved & Recover ${formatCurrency(selectedCase.amount)}`}
+                    </button>
+                  );
+                })()}
               </div>
 
               {/* Case History Timeline */}

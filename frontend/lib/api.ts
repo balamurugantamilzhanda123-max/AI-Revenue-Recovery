@@ -13,6 +13,51 @@ import {
 } from "../types/revive";
 import { FALLBACK_PRODUCTS } from "./fallbackProducts";
 
+const SYNC_STORAGE_KEY = "reviveai_synced_transactions_v2";
+
+export function getLocalSyncedTransactions(): any[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(SYNC_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalSyncedTransactions(txs: any[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(SYNC_STORAGE_KEY, JSON.stringify(txs));
+  } catch {}
+}
+
+export function addOrUpdateLocalTransaction(tx: any) {
+  if (typeof window === "undefined" || !tx) return;
+  try {
+    const txs = getLocalSyncedTransactions();
+    const idx = txs.findIndex(
+      (t: any) =>
+        (tx.transaction_id && t.transaction_id === tx.transaction_id) ||
+        (tx.id && t.id === tx.id) ||
+        (tx.order_id && t.order_id === tx.order_id)
+    );
+    if (idx >= 0) {
+      txs[idx] = { ...txs[idx], ...tx };
+    } else {
+      txs.unshift(tx);
+    }
+    saveLocalSyncedTransactions(txs);
+  } catch {}
+}
+
+export function clearLocalSyncedTransactions() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(SYNC_STORAGE_KEY);
+  } catch {}
+}
+
 export function getApiBase(): string {
   const raw = (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
 
@@ -51,6 +96,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const defaultHeaders: Record<string, string> = {
     "Content-Type": "application/json",
   };
+
+  if (typeof window !== "undefined") {
+    try {
+      const localTxs = getLocalSyncedTransactions();
+      if (localTxs && localTxs.length > 0) {
+        defaultHeaders["x-reviveai-synced-txs"] = encodeURIComponent(
+          JSON.stringify(localTxs.slice(0, 50))
+        );
+      }
+    } catch {}
+  }
 
   try {
     const res = await fetch(url, {
@@ -331,6 +387,7 @@ export async function resetDashboard(): Promise<{
   metadata?: any;
   timestamp?: string;
 }> {
+  clearLocalSyncedTransactions();
   return request("/api/admin/reset-dashboard", { method: "POST" });
 }
 
@@ -339,15 +396,24 @@ export async function resetDashboard(): Promise<{
 // ==========================================
 
 export async function resetDemoData(): Promise<any> {
+  clearLocalSyncedTransactions();
   return request("/api/demo/reset", { method: "POST" });
 }
 
 export async function runPrimaryDemo(): Promise<any> {
-  return request("/api/demo/run-primary", { method: "POST" });
+  const res = await request<any>("/api/demo/run-primary", { method: "POST" });
+  if (res && res.transaction) {
+    addOrUpdateLocalTransaction(res.transaction);
+  }
+  return res;
 }
 
 export async function runRetryFailureDemo(): Promise<any> {
-  return request("/api/demo/run-retry-failure", { method: "POST" });
+  const res = await request<any>("/api/demo/run-retry-failure", { method: "POST" });
+  if (res && res.transaction) {
+    addOrUpdateLocalTransaction(res.transaction);
+  }
+  return res;
 }
 
 // ==========================================
@@ -630,8 +696,9 @@ export async function processCustomerPayment(payload: {
     | "DECLINE"
     | "PAYMENT_FAILED";
 }): Promise<any> {
+  let res: any;
   try {
-    return await request("/api/checkout/process-payment", {
+    res = await request("/api/checkout/process-payment", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -678,7 +745,7 @@ export async function processCustomerPayment(payload: {
 
     const details = failureReasonMap[scenario] || failureReasonMap.NETWORK_ERROR;
 
-    return {
+    res = {
       success: isSuccess,
       status: isSuccess ? "SUCCESS" : "FAILED",
       order_id: orderId,
@@ -702,6 +769,35 @@ export async function processCustomerPayment(payload: {
         : "Payment attempt failed. Autonomous ReviveAI Recovery initialized.",
     };
   }
+
+  // Always update synced client state
+  const isSucc = res.status === "SUCCESS" || res.payment_status === "SUCCESS" || res.success === true;
+  const newTx = res.transaction || {
+    id: "tx_" + (res.transaction_id || Math.random().toString(36).substring(2, 9)),
+    transaction_id: res.transaction_id,
+    order_id: res.order_id,
+    customer_id: "cust_active",
+    customer: payload.customer || { name: "Valued Customer", email: "customer@voltstore.in", phone: "+91 98765 43210" },
+    product_id: payload.product_id || "prod_volt_01",
+    product_name: res.product_name || "VoltStore Electronics",
+    category: "Electronics",
+    amount: payload.amount || 2499,
+    currency: payload.currency || "INR",
+    status: isSucc ? "SUCCESS" : "FAILED",
+    payment_method: payload.payment_method || "UPI",
+    failure_reason: isSucc ? null : res.failure_reason,
+    gateway_response: res.customer_message || res.message,
+    retry_count: 0,
+    recovery_status: isSucc ? "RECOVERED" : "OPEN",
+    recovered_amount: isSucc ? (payload.amount || 2499) : 0,
+    escalation_status: "NONE",
+    recovery_token: res.recovery_token,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  addOrUpdateLocalTransaction(newTx);
+
+  return res;
 }
 
 export async function abandonCustomerCheckout(payload: {
@@ -716,10 +812,33 @@ export async function abandonCustomerCheckout(payload: {
     phone?: string;
   };
 }): Promise<any> {
-  return request("/api/checkout/abandon", {
+  const res = await request<any>("/api/checkout/abandon", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  if (res) {
+    const abnTx = res.transaction || {
+      id: "tx_abn_" + Math.random().toString(36).substring(2, 9),
+      transaction_id: res.transaction_id || "TXN-" + Math.floor(100000 + Math.random() * 900000),
+      order_id: res.order_id || "ORD-" + Math.floor(100000 + Math.random() * 900000),
+      customer: payload.customer,
+      product_id: payload.product_id,
+      product_name: "VoltStore Electronics",
+      amount: payload.amount,
+      currency: payload.currency || "INR",
+      status: "ABANDONED",
+      payment_method: "NETBANKING",
+      failure_reason: "Checkout session expired before payment authorization",
+      recovery_status: "OPEN",
+      recovered_amount: 0,
+      escalation_status: "NONE",
+      recovery_token: res.recovery_token,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    addOrUpdateLocalTransaction(abnTx);
+  }
+  return res;
 }
 
 export async function fetchRecoverySession(token: string): Promise<any> {
@@ -758,15 +877,16 @@ export async function retryCustomerPayment(payload: {
   token?: string;
   retry_outcome: "SUCCESS" | "FAILED" | "RETRY_SUCCESS" | "RETRY_FAILED";
 }): Promise<any> {
+  let res: any;
   try {
-    return await request("/api/checkout/retry-payment", {
+    res = await request("/api/checkout/retry-payment", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   } catch {
     const isSuccess =
       payload.retry_outcome === "SUCCESS" || payload.retry_outcome === "RETRY_SUCCESS";
-    return {
+    res = {
       success: isSuccess,
       status: isSuccess ? "SUCCESS" : "ESCALATED",
       payment_status: isSuccess ? "SUCCESS" : "FAILED",
@@ -785,6 +905,22 @@ export async function retryCustomerPayment(payload: {
         : "Payment retry declined. Case forwarded to Human Associate.",
     };
   }
+
+  // Update transaction record in local storage without destroying history
+  const isSucc = payload.retry_outcome === "SUCCESS" || payload.retry_outcome === "RETRY_SUCCESS" || res.status === "SUCCESS";
+  const updatedTx = res.transaction || {
+    transaction_id: payload.transaction_id || res.transaction_id,
+    order_id: payload.order_id || res.order_id,
+    status: isSucc ? "SUCCESS" : "FAILED",
+    recovery_status: isSucc ? "RECOVERED" : "ESCALATED",
+    recovered_amount: isSucc ? (res.amount || res.recovered_amount || 65999) : 0,
+    escalation_status: isSucc ? "NONE" : "OPEN",
+    failure_reason: isSucc ? null : "Payment retry limit reached",
+    updated_at: new Date().toISOString(),
+  };
+  addOrUpdateLocalTransaction(updatedTx);
+
+  return res;
 }
 
 // ==========================================

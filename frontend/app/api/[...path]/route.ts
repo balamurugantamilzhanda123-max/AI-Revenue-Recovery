@@ -112,6 +112,33 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     }
   }
 
+  // Merge any transactions synced from client storage (ensuring multi-order persistence in serverless environments)
+  const syncHeader = req.headers.get("x-reviveai-synced-txs");
+  if (syncHeader) {
+    try {
+      const decoded = JSON.parse(decodeURIComponent(syncHeader));
+      if (Array.isArray(decoded)) {
+        for (const item of decoded) {
+          if (!item || (!item.transaction_id && !item.order_id)) continue;
+          const existingIdx = inMemoryTransactions.findIndex(
+            (t) =>
+              (item.transaction_id && t.transaction_id === item.transaction_id) ||
+              (item.id && t.id === item.id) ||
+              (item.order_id && t.order_id === item.order_id)
+          );
+          if (existingIdx >= 0) {
+            inMemoryTransactions[existingIdx] = {
+              ...inMemoryTransactions[existingIdx],
+              ...item,
+            };
+          } else {
+            inMemoryTransactions.push(item);
+          }
+        }
+      }
+    } catch {}
+  }
+
   // 2. Comprehensive Next.js Native Handlers
 
   // Health
@@ -124,8 +151,12 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     });
   }
 
-  // Admin Reset Dashboard
-  if (pathStr === "admin/reset-dashboard" || pathStr === "demo/reset-all") {
+  // Admin Reset Dashboard & Demo Reset
+  if (
+    pathStr === "admin/reset-dashboard" ||
+    pathStr === "demo/reset-all" ||
+    pathStr === "demo/reset"
+  ) {
     const prevCount = inMemoryTransactions.length;
     inMemoryTransactions = [];
     const resetTime = new Date().toISOString();
@@ -149,12 +180,150 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
 
     return NextResponse.json({
       success: true,
-      message: "Dashboard reset successfully. All transaction and recovery data has been cleared.",
+      message: "Dashboard and demo data successfully reset to clean baseline.",
+      transactions: [],
       metadata: {
         transactions_deleted: prevCount,
         reset_timestamp: resetTime,
       },
       timestamp: resetTime,
+    });
+  }
+
+  // Demo Scenarios Execution
+  if (pathStr === "demo/run-primary") {
+    const nowIso = new Date().toISOString();
+    let found = inMemoryTransactions.find((t) => t.transaction_id === "TX-DEMO-001");
+    if (!found) {
+      found = {
+        id: "demo_tx_001",
+        transaction_id: "TX-DEMO-001",
+        order_id: "ORDER-DEMO-001",
+        customer_id: "CUST-DEMO-001",
+        customer: {
+          name: "Demo Customer",
+          email: "demo.customer@example.com",
+          phone: "+919999999999",
+          status: "ACTIVE",
+        },
+        product_id: "prod_led_bulb_01",
+        product_name: "Syska Smart LED Bulb 12W RGB",
+        category: "Lighting & Smart Home",
+        amount: 5999.0,
+        currency: "INR",
+        status: "FAILED",
+        payment_method: "UPI",
+        failure_reason: "TIMEOUT",
+        gateway_response: "UPI collect request timed out at gateway",
+        retry_count: 0,
+        recovery_status: "OPEN",
+        recovered_amount: 0,
+        escalation_status: "NONE",
+        recovery_token: "recov_demo_001",
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      inMemoryTransactions.unshift(found);
+    }
+    found.status = "SUCCESS";
+    found.recovery_status = "RECOVERED";
+    found.recovered_amount = found.amount;
+    found.retry_count += 1;
+    found.updated_at = nowIso;
+    found.failure_reason = null;
+    found.gateway_response = "Payment captured successfully on autonomous recovery";
+
+    inMemoryAuditLogs.unshift({
+      id: "audit_demo_primary_" + Math.random().toString(36).substring(2, 8),
+      transaction_id: "TX-DEMO-001",
+      event_type: "AUTONOMOUS_RECOVERY_SUCCESS",
+      event_message: `Primary Recovery executed for TX-DEMO-001. Recovered INR ${found.amount}`,
+      actor: "ReviveAI Autonomous Agent",
+      metadata: { amount: found.amount, status: "SUCCESS" },
+      created_at: nowIso,
+      timestamp: nowIso,
+    });
+
+    return NextResponse.json({
+      success: true,
+      transaction_id: "TX-DEMO-001",
+      payment_status: "SUCCESS",
+      recovery_status: "RECOVERED",
+      recovered_amount: found.amount,
+      execution_result: {
+        payment_status: "SUCCESS",
+        order_status: "CONFIRMED",
+        message: `Primary Recovery executed for TX-DEMO-001! Recovered INR ${found.amount}`,
+      },
+      transaction: found,
+    });
+  }
+
+  if (pathStr === "demo/run-retry-failure") {
+    const nowIso = new Date().toISOString();
+    let found = inMemoryTransactions.find((t) => t.transaction_id === "TX-DEMO-002");
+    if (!found) {
+      found = {
+        id: "demo_tx_002",
+        transaction_id: "TX-DEMO-002",
+        order_id: "ORDER-DEMO-002",
+        customer_id: "CUST-DEMO-002",
+        customer: {
+          name: "Retry Failure Customer",
+          email: "retry.failure@example.com",
+          phone: "+918888888888",
+          status: "ACTIVE",
+        },
+        product_id: "prod_ceiling_fan_01",
+        product_name: "Havells Stealth Air Ceiling Fan",
+        category: "Fans & Air Quality",
+        amount: 3499.0,
+        currency: "INR",
+        payment_method: "CARD",
+        status: "FAILED",
+        failure_reason: "TEMPORARY_PAYMENT_ERROR",
+        gateway_response: "Temporary gateway error; retry allowed in sandbox",
+        retry_count: 0,
+        recovery_status: "OPEN",
+        recovered_amount: 0,
+        escalation_status: "NONE",
+        recovery_token: "recov_demo_002",
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      inMemoryTransactions.unshift(found);
+    }
+    found.status = "FAILED";
+    found.recovery_status = "ESCALATED";
+    found.escalation_status = "OPEN";
+    found.retry_count += 1;
+    found.updated_at = nowIso;
+    found.failure_reason = "Customer payment failed twice. Automatic recovery limit reached.";
+    found.gateway_response = "Payment retry failed on second attempt. Auto-recovery limit reached.";
+
+    inMemoryAuditLogs.unshift({
+      id: "audit_demo_failure_" + Math.random().toString(36).substring(2, 8),
+      transaction_id: "TX-DEMO-002",
+      event_type: "RECOVERY_LIMIT_ESCALATED",
+      event_message: "Failure & Escalation executed for TX-DEMO-002. Escalation case created.",
+      actor: "ReviveAI Safety Engine",
+      metadata: { amount: found.amount, status: "ESCALATED" },
+      created_at: nowIso,
+      timestamp: nowIso,
+    });
+
+    return NextResponse.json({
+      success: false,
+      transaction_id: "TX-DEMO-002",
+      payment_status: "FAILED",
+      recovery_status: "ESCALATED",
+      recovered_amount: 0,
+      execution_result: {
+        payment_status: "FAILED",
+        order_status: "ESCALATED",
+        message: "Failure & Escalation executed for TX-DEMO-002! Retry failed, policy enforced limit, Escalation created.",
+      },
+      transaction: found,
     });
   }
 
@@ -433,6 +602,7 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       message: isSuccess
         ? "Payment verified and order placed successfully!"
         : "Payment attempt failed. Autonomous ReviveAI Recovery initialized.",
+      transaction: newTx,
     });
   }
 
@@ -485,6 +655,7 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       message: "Checkout abandonment logged. Recovery link dispatched via SMS/Email.",
       recovery_token: recovToken,
       retry_link: `/pay/recover/${recovToken}`,
+      transaction: newTx,
     });
   }
 
@@ -563,12 +734,15 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     const isSuccess =
       body.retry_outcome === "SUCCESS" || body.retry_outcome === "RETRY_SUCCESS";
     const txId = body.transaction_id || "";
-    const matched = inMemoryTransactions.find(
+    let matched = inMemoryTransactions.find(
       (t) =>
-        t.transaction_id === txId ||
-        t.order_id === body.order_id ||
+        (txId && t.transaction_id === txId) ||
+        (body.order_id && t.order_id === body.order_id) ||
         (body.token && t.recovery_token === body.token)
     );
+    if (!matched && inMemoryTransactions.length > 0) {
+      matched = inMemoryTransactions[0];
+    }
     if (matched) {
       if (isSuccess) {
         matched.status = "SUCCESS";
@@ -613,6 +787,55 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       message: isSuccess
         ? "Autonomous recovery successful! Payment confirmed."
         : "Payment retry was not successful. Case transferred to Human Associate.",
+      transaction: matched,
+    });
+  }
+
+  // Customer Orders List (VoltStore Customer History)
+  if (
+    pathStr === "checkout/customer/orders" ||
+    pathStr === "customer/orders" ||
+    pathStr === "orders"
+  ) {
+    const emailFilter = req.nextUrl.searchParams.get("email");
+    const phoneFilter = req.nextUrl.searchParams.get("phone");
+    const custIdFilter = req.nextUrl.searchParams.get("customer_id");
+
+    let filtered = inMemoryTransactions;
+    if (emailFilter) {
+      filtered = filtered.filter(
+        (t) => t.customer?.email?.toLowerCase() === emailFilter.toLowerCase()
+      );
+    }
+    if (phoneFilter) {
+      filtered = filtered.filter((t) => t.customer?.phone === phoneFilter);
+    }
+    if (custIdFilter) {
+      filtered = filtered.filter((t) => t.customer_id === custIdFilter);
+    }
+
+    const effectiveList = filtered.length > 0 ? filtered : inMemoryTransactions;
+    const mapped = effectiveList.map((t) => ({
+      order_id: t.order_id,
+      transaction_id: t.transaction_id,
+      product_name: t.product_name || "VoltStore Appliance",
+      category: t.category || "Electronics",
+      image_url: `/products/generated/${t.product_id || "prod_laptop_biz_01"}.svg`,
+      amount: t.amount,
+      currency: t.currency || "INR",
+      payment_method: t.payment_method || "UPI",
+      payment_status: t.status,
+      order_status: t.status === "SUCCESS" ? "CONFIRMED" : "PAYMENT_FAILED",
+      recovery_status: t.recovery_status,
+      recovery_token: t.recovery_token || `rec_${t.transaction_id}`,
+      created_at: t.created_at,
+      can_retry: t.status !== "SUCCESS" && t.retry_count < 1,
+      retry_link: `/payment/retry/${t.recovery_token || `rec_${t.transaction_id}`}`,
+    }));
+
+    return NextResponse.json({
+      data: mapped,
+      count: mapped.length,
     });
   }
 
@@ -750,6 +973,7 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
           ? "Autonomous recovery successful! Payment confirmed."
           : "Recovery retry failed, escalated to Human Specialist.",
       },
+      transaction: matched,
     });
   }
 
@@ -797,6 +1021,74 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
   const aiCasesCount = txs.filter((t) => t.recovery_status === "OPEN" || (t.recovery_status === "RECOVERED" && t.customer_response !== "RECOVERED_BY_HUMAN")).length;
   const humanCasesCount = txs.filter((t) => t.escalation_status !== "NONE" || t.recovery_status === "ESCALATED" || t.customer_response === "RECOVERED_BY_HUMAN").length;
   const highRiskCount = recoverableTxs.filter((t) => t.amount >= 10000).length;
+
+  // Product loss breakdown
+  const productStatsMap: Record<string, any> = {};
+  for (const prod of FALLBACK_PRODUCTS) {
+    productStatsMap[prod.id] = {
+      product_id: prod.id,
+      product_name: prod.name,
+      category: prod.category,
+      unit_price: prod.price,
+      orders_count: 0,
+      successful_orders: 0,
+      failed_orders: 0,
+      network_errors: 0,
+      checkout_abandonments: 0,
+      revenue_at_risk: 0,
+      recovered_revenue: 0,
+      recovery_rate: 0,
+    };
+  }
+
+  for (const t of txs) {
+    let pid = t.product_id;
+    if (!pid || !productStatsMap[pid]) {
+      const match =
+        FALLBACK_PRODUCTS.find(
+          (p) => Math.abs(p.price - (t.amount || 0)) < 5 || p.name === t.product_name
+        ) || FALLBACK_PRODUCTS[0];
+      pid = match.id;
+    }
+    if (productStatsMap[pid]) {
+      const stat = productStatsMap[pid];
+      stat.orders_count += 1;
+      if (t.status === "SUCCESS") {
+        stat.successful_orders += 1;
+        if (t.recovered_amount && t.recovered_amount > 0) {
+          stat.recovered_revenue += t.recovered_amount;
+        }
+      } else if (t.status === "FAILED") {
+        stat.failed_orders += 1;
+        const comb = ((t.failure_reason || "") + (t.gateway_response || "")).toLowerCase();
+        if (comb.includes("network") || comb.includes("tcp rst")) {
+          stat.network_errors += 1;
+        }
+        if (t.recovery_status !== "RECOVERED" && t.recovery_status !== "STOPPED") {
+          stat.revenue_at_risk += t.amount || 0;
+        }
+      } else if (t.status === "ABANDONED") {
+        stat.checkout_abandonments += 1;
+        if (t.recovery_status !== "RECOVERED" && t.recovery_status !== "STOPPED") {
+          stat.revenue_at_risk += t.amount || 0;
+        }
+      }
+    }
+  }
+
+  const productLossList = Object.values(productStatsMap)
+    .map((stat: any) => {
+      const recPool = stat.revenue_at_risk + stat.recovered_revenue;
+      stat.recovery_rate =
+        recPool > 0
+          ? Number(((stat.recovered_revenue / recPool) * 100).toFixed(1))
+          : 0;
+      return stat;
+    })
+    .sort(
+      (a: any, b: any) =>
+        b.revenue_at_risk - a.revenue_at_risk || b.orders_count - a.orders_count
+    );
 
   // Dashboard Summary & Metrics
   if (pathStr === "dashboard/summary") {
@@ -895,7 +1187,7 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
         escalated_to_human: humanCasesCount,
         human_payment_success: humanCasesCount,
       },
-      product_revenue_loss: [],
+      product_revenue_loss: productLossList,
       generated_at: new Date().toISOString(),
     });
   }

@@ -169,7 +169,10 @@ def list_transactions(
     offset = max(offset, 0)
     query = (
         select(Transaction)
-        .options(joinedload(Transaction.customer))
+        .options(
+            joinedload(Transaction.customer),
+            selectinload(Transaction.recovery_cases),
+        )
         .order_by(Transaction.created_at.desc())
         .offset(offset)
         .limit(limit)
@@ -180,7 +183,7 @@ def list_transactions(
         query = query.where(Transaction.customer_id == customer_id)
     transactions = db.scalars(query).all()
     return {
-        "data": [transaction_dict(transaction) for transaction in transactions],
+        "data": [transaction_dict(transaction, include_detail=True) for transaction in transactions],
         "pagination": {
             "limit": limit,
             "offset": offset,

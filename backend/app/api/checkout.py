@@ -1152,11 +1152,15 @@ def get_recovery_session(token: str, db: Session = Depends(get_db)):
     if reason_code == "EXPIRED":
         raise HTTPException(status_code=410, detail="This payment recovery link has expired (24-hour limit).")
 
-    # Match product
+    # Match product and order record
+    order_rec = db.query(Order).filter(Order.id == tx.order_id).first()
     matching_prod = next(
         (p for p in CATALOG_ITEMS if abs(float(p["price"]) - float(tx.amount)) < 5.0),
         CATALOG_ITEMS[0],
     )
+    prod_id = order_rec.product_id if order_rec and order_rec.product_id else matching_prod["id"]
+    prod_name = order_rec.product_name if order_rec and order_rec.product_name else matching_prod["name"]
+    prod_category = order_rec.category if order_rec and order_rec.category else matching_prod.get("category", "Electronics")
 
     already_paid = tx.status == PaymentStatus.SUCCESS or reason_code == "ALREADY_PAID"
     already_used = token_rec.is_used if token_rec else (tx.retry_count >= 1)
@@ -1174,13 +1178,14 @@ def get_recovery_session(token: str, db: Session = Depends(get_db)):
         "currency": tx.currency,
         "payment_method": tx.payment_method,
         "product": {
-            "id": matching_prod["id"],
-            "name": matching_prod["name"],
-            "image_url": matching_prod["image_url"],
-            "category": matching_prod["category"],
-            "description": matching_prod["description"],
-            "price": float(matching_prod["price"]),
+            "id": prod_id,
+            "name": prod_name,
+            "image_url": matching_prod.get("image_url", ""),
+            "category": prod_category,
+            "description": matching_prod.get("description", ""),
+            "price": float(tx.amount),
         },
+        "product_name": prod_name,
         "customer_name": tx.customer.name if tx.customer else "Valued Customer",
         "retry_allowed": (not already_paid) and (not already_used) and (not is_escalated) and tx.retry_count < 1,
         "already_paid": already_paid,

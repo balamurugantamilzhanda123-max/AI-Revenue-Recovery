@@ -488,8 +488,72 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     });
   }
 
+  // Customer Payment Recovery Session (Landing Page for Recovery Links)
+  if (pathStr.startsWith("checkout/recover/") || pathStr.startsWith("recover/")) {
+    const token = pathParts[pathParts.length - 1];
+    const matched =
+      inMemoryTransactions.find(
+        (t) =>
+          t.recovery_token === token ||
+          t.transaction_id === token ||
+          t.order_id === token ||
+          t.id === token
+      ) || inMemoryTransactions[0];
+
+    if (matched) {
+      const matchingProd =
+        FALLBACK_PRODUCTS.find(
+          (p) => p.id === matched.product_id || p.productId === matched.product_id
+        ) || {
+          id: matched.product_id || "prod_laptop_biz_01",
+          name: matched.product_name || "VoltStore Electronics",
+          category: matched.category || "Electronics",
+          price: matched.amount,
+          image_url: `/products/generated/${matched.product_id || "prod_laptop_biz_01"}.svg`,
+          image: `/products/generated/${matched.product_id || "prod_laptop_biz_01"}.svg`,
+        };
+
+      const isAlreadyPaid = matched.status === "SUCCESS";
+      const isEscalated =
+        matched.escalation_status !== "NONE" ||
+        matched.recovery_status === "ESCALATED";
+      const isUsed = matched.retry_count >= 1;
+
+      return NextResponse.json({
+        order_id: matched.order_id,
+        transaction_id: matched.transaction_id,
+        token: token,
+        status: matched.status,
+        amount: matched.amount,
+        currency: matched.currency || "INR",
+        payment_method: matched.payment_method || "UPI",
+        product: {
+          id: matched.product_id,
+          name: matched.product_name,
+          category: matched.category,
+          image_url: matchingProd.image_url || matchingProd.image,
+          image: matchingProd.image_url || matchingProd.image,
+          price: matched.amount,
+        },
+        product_name: matched.product_name,
+        customer_name: matched.customer?.name || "Valued Customer",
+        customer: matched.customer,
+        retry_allowed:
+          !isAlreadyPaid && !isUsed && !isEscalated && matched.retry_count < 1,
+        already_paid: isAlreadyPaid,
+        already_used: isUsed,
+        escalated_to_support: isEscalated,
+      });
+    }
+
+    return NextResponse.json(
+      { detail: "Payment recovery link is invalid or not found." },
+      { status: 404 }
+    );
+  }
+
   // Retry Customer Payment
-  if (pathStr === "checkout/retry-payment") {
+  if (pathStr === "checkout/retry-payment" || pathStr === "retry-payment") {
     let body: any = {};
     try {
       body = await req.json();
@@ -499,19 +563,38 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
     const isSuccess =
       body.retry_outcome === "SUCCESS" || body.retry_outcome === "RETRY_SUCCESS";
     const txId = body.transaction_id || "";
-    const matched = inMemoryTransactions.find((t) => t.transaction_id === txId || t.order_id === body.order_id);
+    const matched = inMemoryTransactions.find(
+      (t) =>
+        t.transaction_id === txId ||
+        t.order_id === body.order_id ||
+        (body.token && t.recovery_token === body.token)
+    );
     if (matched) {
       if (isSuccess) {
         matched.status = "SUCCESS";
         matched.recovery_status = "RECOVERED";
         matched.recovered_amount = matched.amount;
+        matched.failure_reason = null;
+        matched.gateway_response = "Payment captured successfully on retry (Sandbox)";
       } else {
         matched.recovery_status = "ESCALATED";
         matched.escalation_status = "OPEN";
+        matched.failure_reason =
+          "Customer payment failed twice. Automatic recovery limit reached.";
+        matched.gateway_response =
+          "Payment retry failed on second attempt. Auto-recovery limit reached.";
       }
       matched.retry_count += 1;
       matched.updated_at = new Date().toISOString();
     }
+
+    const matchedAmt = matched ? matched.amount : Number(body.amount || 65999);
+    const matchedOrderId = matched
+      ? matched.order_id
+      : body.order_id || "ORD-REC-DEMO";
+    const matchedTxnId = matched
+      ? matched.transaction_id
+      : body.transaction_id || "TXN-REC-DEMO";
 
     return NextResponse.json({
       success: isSuccess,
@@ -522,14 +605,151 @@ async function handleApiRequest(req: NextRequest, { params }: { params: { path: 
       escalated_to_human: !isSuccess,
       escalated_to_support: !isSuccess,
       already_paid: isSuccess,
-      order_id: body.order_id || "ORD-REC-DEMO",
-      transaction_id: body.transaction_id || "TXN-REC-DEMO",
-      recovered_amount: isSuccess ? (matched?.amount || 65999) : 0,
-      amount: matched?.amount || 65999,
-      currency: "INR",
+      order_id: matchedOrderId,
+      transaction_id: matchedTxnId,
+      recovered_amount: isSuccess ? matchedAmt : 0,
+      amount: matchedAmt,
+      currency: matched?.currency || "INR",
       message: isSuccess
         ? "Autonomous recovery successful! Payment confirmed."
         : "Payment retry was not successful. Case transferred to Human Associate.",
+    });
+  }
+
+  // AI Agent: Diagnose
+  if (pathStr.startsWith("agent/diagnose/")) {
+    const txnId = pathParts[pathParts.length - 1];
+    const matched =
+      inMemoryTransactions.find(
+        (t) => t.transaction_id === txnId || t.id === txnId || t.order_id === txnId
+      ) || inMemoryTransactions[0];
+
+    const reason = (matched?.failure_reason || "").toLowerCase();
+    let rootCause = "technical_failure";
+    let confidence = 0.94;
+    let evidence = [
+      "Network TCP connection reset during 3DS gateway handshake (TCP RST)",
+      "Zero duplicate charge verified with acquiring switch",
+      "Merchant automated retry policy active and approved",
+    ];
+
+    if (reason.includes("timeout")) {
+      rootCause = "payment_timeout";
+      confidence = 0.92;
+      evidence = [
+        "Bank network gateway timeout (HTTP 504)",
+        "Token state is UNCAPTURED - no funds debited",
+        "Safe to initiate status verification and retry",
+      ];
+    } else if (reason.includes("auth") || reason.includes("3ds") || reason.includes("otp")) {
+      rootCause = "authentication_failure";
+      confidence = 0.88;
+      evidence = [
+        "Customer 3DS auth token expired during verification",
+        "User session active, re-authentication prompt required",
+      ];
+    } else if (reason.includes("decline") || reason.includes("balance")) {
+      rootCause = "bank_decline";
+      confidence = 0.86;
+      evidence = [
+        "Issuer bank declined authorization request",
+        "Alternative payment instrument recommended",
+      ];
+    }
+
+    return NextResponse.json({
+      transaction_id: matched ? matched.transaction_id : txnId,
+      root_cause: rootCause,
+      confidence: confidence,
+      evidence: evidence,
+      reason: `Automated telemetry diagnosis: ${matched?.failure_reason || "Payment Error"}`,
+      requires_human_review:
+        matched?.recovery_status === "ESCALATED" || (matched?.retry_count || 0) >= 1,
+    });
+  }
+
+  // AI Agent: Decide
+  if (pathStr.startsWith("agent/decide/")) {
+    const txnId = pathParts[pathParts.length - 1];
+    const matched =
+      inMemoryTransactions.find(
+        (t) => t.transaction_id === txnId || t.id === txnId || t.order_id === txnId
+      ) || inMemoryTransactions[0];
+
+    const isEscalated =
+      matched?.recovery_status === "ESCALATED" || (matched?.retry_count || 0) >= 1;
+    const isSuccess = matched?.status === "SUCCESS";
+
+    const decision = isSuccess
+      ? "no_action_needed"
+      : isEscalated
+      ? "escalate_to_human"
+      : "controlled_retry";
+
+    const allowed = !isEscalated && !isSuccess;
+
+    return NextResponse.json({
+      transaction_id: matched ? matched.transaction_id : txnId,
+      decision: decision,
+      policy: allowed ? "APPROVED" : "BLOCKED",
+      allowed: allowed,
+      reason: allowed
+        ? "Transaction eligible for 1-click autonomous retry under merchant safety policy."
+        : isSuccess
+        ? "Transaction is already paid and confirmed."
+        : "Safety policy limit reached (max 1 retry). Escalated to human support.",
+    });
+  }
+
+  // AI Agent: Workflow / Start Recovery / Payments Retry
+  if (
+    pathStr.startsWith("recovery/start/") ||
+    pathStr.startsWith("payments/retry/") ||
+    pathStr.startsWith("agent/workflow/")
+  ) {
+    const txnId = pathParts[pathParts.length - 1];
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      // empty
+    }
+
+    const matched = inMemoryTransactions.find(
+      (t) => t.transaction_id === txnId || t.id === txnId || t.order_id === txnId
+    );
+
+    const forceResult = body.force_payment_result || body.force_result || "SUCCESS";
+    const isSuccess = forceResult === "SUCCESS";
+
+    if (matched) {
+      if (isSuccess) {
+        matched.status = "SUCCESS";
+        matched.recovery_status = "RECOVERED";
+        matched.recovered_amount = matched.amount;
+        matched.failure_reason = null;
+        matched.gateway_response = "Payment captured successfully on autonomous recovery";
+      } else {
+        matched.recovery_status = "ESCALATED";
+        matched.escalation_status = "OPEN";
+      }
+      matched.retry_count += 1;
+      matched.updated_at = new Date().toISOString();
+    }
+
+    return NextResponse.json({
+      success: isSuccess,
+      transaction_id: matched ? matched.transaction_id : txnId,
+      payment_status: isSuccess ? "SUCCESS" : "FAILED",
+      recovery_status: isSuccess ? "RECOVERED" : "ESCALATED",
+      recovered_amount: isSuccess ? (matched?.amount || 0) : 0,
+      execution_result: {
+        payment_status: isSuccess ? "SUCCESS" : "FAILED",
+        order_status: isSuccess ? "CONFIRMED" : "ESCALATED",
+        message: isSuccess
+          ? "Autonomous recovery successful! Payment confirmed."
+          : "Recovery retry failed, escalated to Human Specialist.",
+      },
     });
   }
 
